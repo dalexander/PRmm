@@ -1,0 +1,56 @@
+__all__ = [ "TrxH5Reader" ]
+
+import h5py
+import os.path as op
+import numpy as np
+
+
+class HoleStatus(object):
+    (SEQUENCING, ANTIHOLE, FIDUCIAL, SUSPECT,
+     ANTIMIRROR, FDZMW, FBZMW, ANTIBEAMLET, OUTSIDEFOV) = range(9)
+
+class TrxH5Reader(object):
+    """
+    Reader for trx.h5 files
+    """
+    def __init__(self, fname):
+        self.filename = op.abspath(op.expanduser(fname))
+        self.file = h5py.File(self.filename, "r")
+        self._initCodec()
+        self._initHoleNumberMaps()
+        self._traceData = self.file["/TraceData/Traces"]
+
+    def _initCodec(self):
+        self._codec = LutCodec(self.file["/TraceData/Codec/Decode"])
+
+    def _initHoleNumberMaps(self):
+        holeNumbers = self.file["/TraceData/HoleNumber"][:]
+        self._holeNumbers = holeNumbers
+        self._holeNumberToIndex = dict(zip(holeNumbers, range(len(holeNumbers))))
+
+    @property
+    def holeNumbers(self):
+        return self._holeNumbers
+
+    @property
+    def codec(self):
+        return self._codec
+
+    def __getitem__(self, holeNumber):
+        idx = self._holeNumberToIndex[holeNumber]
+        arr = self._traceData[idx]
+        return self.codec.decode(arr)
+
+
+class LutCodec(object):
+    def __init__(self, lut):
+        self._lut = lut[:]
+
+    def decode(self, arr):
+        return self._lut[arr]
+
+class TraceZmw(object):
+    pass
+
+class ZmwTrace(object):
+    pass
