@@ -1,10 +1,61 @@
+#!/usr/bin/env python
+"""
+Usage: traceViewer1.py [--debug]
+                       [--pulse=PLXFILE]
+                       --hole=HOLENUMBER
+                       TRXFILE
+"""
 import numpy as np
 import pyqtgraph as pg
+from docopt import docopt
 from pyqtgraph.Qt import QtCore, QtGui
 
-from PRmm.stack import TrxH5Reader
+from PRmm.stack import TrxH5Reader, PlxH5Reader
+
+
+class PulseOverlayItem(pg.GraphicsObject):
+    """
+    The pulses!
+    """
+    def __init__(self, zmwPulses):
+        pg.GraphicsObject.__init__(self)
+        self.zmwPulses = zmwPulses
+        self.generatePicture()
+
+    def generatePicture(self):
+        # Precompute a QPicture object
+        self.picture = QtGui.QPicture()
+        p = QtGui.QPainter(self.picture)
+
+        startFrame    = self.zmwPulses.startFrame()
+        widthInFrames = self.zmwPulses.widthInFrames()
+        channel       = self.zmwPulses.channel()
+
+        pens = [ pg.mkPen((i, 4), width=2) for i in xrange(4) ]
+
+        y = -5
+        for i in xrange(len(channel)):
+            c     = channel[i]
+            start = startFrame[i]
+            width = widthInFrames[i]
+
+            p.setPen(pens[c])
+            p.drawLine(QtCore.QPointF(start, y), QtCore.QPointF(start+width, y))
+
+    def paint(self, p, *args):
+        p.drawPicture(0, 0, self.picture)
+
+    def boundingRect(self):
+        return QtCore.QRectF(self.picture.boundingRect())
+
+
 
 class CustomViewBox(pg.ViewBox):
+    """
+    CustomViewBox implements the following behavior:
+      - prevents scaling or panning in the y direction
+      - ?
+    """
 
     def __init__(self):
         super(CustomViewBox, self).__init__()
@@ -12,18 +63,21 @@ class CustomViewBox(pg.ViewBox):
     def scaleBy(self, s=None, center=None, x=None, y=None):
         return super(CustomViewBox, self).scaleBy([s[0], 1.0], center, x, y)
 
+    def translateBy(self, t=None, x=None, y=None):
+        return super(CustomViewBox, self).translateBy(t, x, 0)
 
-    # TODO: handle attempts to pan up/down as well
 
 class TraceViewer(QtGui.QMainWindow):
 
-    def __init__(self, trc):
+    def __init__(self, trc, pls=None):
         """
-        trc:        a TrxReader object
+        trc:        a TrxH5Reader object
+        pls:        a PlxH5Reader object (or None)
         holeNumber: integer holenumber
         """
         super(TraceViewer, self).__init__()
         self.trc = trc
+        self.pls = pls
         self.initUI()
 
 
@@ -42,33 +96,42 @@ class TraceViewer(QtGui.QMainWindow):
 
         self.show()
 
-    def renderPlots(self, traceData, frameBegin, frameEnd):
+    def renderTrace(self, traceData):
+        # Clear plot1 first?
         for i in xrange(4):
             self.plot1.plot(traceData[i,:], pen=(i,4))
+
+    def renderPulses(self, zmwPulses):
+        self.plot1.addItem(PulseOverlayItem(zmwPulses))
 
     def setFocus(self, holeNumber, frameBegin=None, frameEnd=None):
         # TODO later: enable reusing data already loaded!
         traceData = self.trc[holeNumber]
         traceFrameExtent = (0, traceData.shape[1])
 
+        if self.pls is not None:
+            zmwPulses = self.pls[holeNumber].pulses()
+        else:
+            zmwPulses = None
+
         if (frameBegin is None) or (frameEnd is None):
             frameBegin, frameEnd = traceFrameExtent
-        # TODO
-        # Set the limits (view box)
-        #  - no zooming past the data extent
-        #  - no zooming in the y-axis
+
         self.plot1.vb.setLimits(
             xMin=traceFrameExtent[0], xMax=traceFrameExtent[1],
             maxXRange=traceFrameExtent)
 
-        self.renderPlots(traceData, frameBegin, frameEnd)
+        # TODO: actually use the extent to set the viewable range
+        self.renderTrace(traceData)
+        if self.pls is not None:
+            self.renderPulses(zmwPulses)
+
 
     def keyPressEvent(self, e):
         # GOAL:
         # * L/R: scroll
         # * -/=: zoom
         # * [/]: go back and forth in history
-
         print "Key pressed!"
 
         if e.key() == QtCore.Qt.Key_Left:
@@ -80,17 +143,23 @@ class TraceViewer(QtGui.QMainWindow):
         elif e.key() == QtCore.Qt.Key_Escape:
             self.close()
 
-    # scroll event?
-
     # mouse event?
 
 
 def main(argv):
-    trcFname = argv[1]
-    holeNumber = int(argv[2])
+    args = docopt(__doc__)
+    if args["--debug"] is not None:
+        print "Args: ", args
+    trcFname = args["TRXFILE"]
     trc = TrxH5Reader(trcFname)
+    holeNumber = int(args["--hole"])
+    if args["--pulse"] is not None:
+        pls = PlxH5Reader(args["--pulse"])
+    else:
+        pls = None
+
     app = QtGui.QApplication([])
-    traceViewer = TraceViewer(trc)
+    traceViewer = TraceViewer(trc, pls)
     traceViewer.setFocus(holeNumber)
     if "--debug" in argv:
         print "Debugging!"*100
@@ -108,17 +177,10 @@ if __name__ == "__main__":
 # Thoughts:
 #   A good start.  Things that would help:
 #   - ability to pan with l/r buttons
-#   - restrict region clipping to the x axis---usually not interested in changing y span
-#   - restrict spans to be within the bounds of the data
 #   - start with good defaults for x/y zoom, otherwise it looks like noise
-#   - overlay the pulses somehow (underline them maybe--y axis not a big deal)
-#
-# Can we reliably load the a whole trace in RAM?  Worst case?
-#  - 6hr x 100fps x 4 x float32 = 35MB --- should work OK.
-#
 
 
-# Look at plotwidget
-# Look at "plot customization" example
-# Look at "GRaphics layout example" to see nesting, etc.
-# Look at "graphitem" to see how to put shapes
+# Look at CustomGraphics example for shapes
+# Look at LabeledGraph example for text overlay
+
+# Tooltips for pulses?

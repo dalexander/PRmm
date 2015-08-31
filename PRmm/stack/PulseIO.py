@@ -52,6 +52,9 @@ class PlxZmw(object):
         endPulse   = bisect_right(endFrame_, endFrame)
         return ZmwPulses(self.plxH5, self.holeNumber, beginPulse, endPulse)
 
+    def pulses(self):
+        return ZmwPulses(self.plxH5, self.holeNumber)
+
 
     # metrics? pulserate, pulseratevst
 
@@ -62,15 +65,19 @@ class ZmwPulses(object):
                   "pulseStart", "pulseEnd",
                   "plxOffsetBegin", "plxOffsetEnd" ]
 
-    def __init__(self, plxH5, holeNumber, pulseStart, pulseEnd):
+    def __init__(self, plxH5, holeNumber, pulseStart=None, pulseEnd=None):
         self.plxH5       = plxH5
         self.holeNumber  = holeNumber
-        self.pulseStart  = pulseStart
-        self.pulseEnd    = pulseEnd
         zmwOffsetBegin, zmwOffsetEnd = self._getPlxOffsets()[self.holeNumber]
+        if (pulseStart is not None) and (pulseEnd is not None):
+            self.pulseStart  = pulseStart
+            self.pulseEnd    = pulseEnd
+        else:
+            self.pulseStart  = 0
+            self.pulseEnd    = zmwOffsetEnd - zmwOffsetBegin
         self.plxOffsetBegin = zmwOffsetBegin + self.pulseStart
         self.plxOffsetEnd   = zmwOffsetBegin + self.pulseEnd
-        if not (zmwOffsetBegin   <=
+        if not (zmwOffsetBegin      <=
                 self.plxOffsetBegin <=
                 self.plxOffsetEnd   <=
                 zmwOffsetEnd):
