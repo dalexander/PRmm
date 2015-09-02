@@ -12,27 +12,37 @@ from pyqtgraph.Qt import QtCore, QtGui
 
 from PRmm.stack import TrxH5Reader, PlxH5Reader
 
+def debug_trace():
+  # http://stackoverflow.com/questions/1736015/debugging-a-pyqt4-app
+  from ipdb import set_trace
+  QtCore.pyqtRemoveInputHook()
+  set_trace()
+
 
 class PulseOverlayItem(pg.GraphicsObject):
     """
     The pulses!
     """
-    def __init__(self, zmwPulses):
+    def __init__(self, plsZmw, plot):
+        # The `plot` argument is just used to determine the
+        # effective visible area.  Not sure if there is a better way!
         pg.GraphicsObject.__init__(self)
-        self.zmwPulses = zmwPulses
+        self.plsZmw = plsZmw
+        self.plot = plot
         self.generatePicture()
+        self._textItems = []
 
     def generatePicture(self):
         # Precompute a QPicture object
+        allPulses = self.plsZmw.pulses()
+        startFrame    = allPulses.startFrame()
+        widthInFrames = allPulses.widthInFrames()
+        channel       = allPulses.channel()
+        base          = allPulses.channelBases()
+
         self.picture = QtGui.QPicture()
         p = QtGui.QPainter(self.picture)
-
-        startFrame    = self.zmwPulses.startFrame()
-        widthInFrames = self.zmwPulses.widthInFrames()
-        channel       = self.zmwPulses.channel()
-
-        pens = [ pg.mkPen((i, 4), width=2) for i in xrange(4) ]
-
+        pens  = [ pg.mkPen((i, 4), width=2) for i in xrange(4) ]
         y = -5
         for i in xrange(len(channel)):
             c     = channel[i]
@@ -42,8 +52,47 @@ class PulseOverlayItem(pg.GraphicsObject):
             p.setPen(pens[c])
             p.drawLine(QtCore.QPointF(start, y), QtCore.QPointF(start+width, y))
 
+    def pulsesToLabel(self):
+        """
+        Returns None, or a ZmwPulses if we are focused on a small enough window for labeling
+        """
+        viewRange = self.plot.viewRange()[0]
+        if viewRange[1] - viewRange[0] >= 500:
+            return None
+        pulsesToDraw = self.plsZmw.pulsesByFrameInterval(viewRange[0], viewRange[1])
+        if len(pulsesToDraw) > 20:
+            return None
+        else:
+            return pulsesToDraw
+
+    def labelPulses(self, pulsesToLabel):
+        # Remove the old labels from the scene
+        for ti in self._textItems:
+            ti.scene().removeItem(ti)
+        self._textItems = []
+
+        if pulsesToLabel is None: return
+
+        print pulsesToLabel.channelBases()
+
+        start   = pulsesToLabel.startFrame()
+        width   = pulsesToLabel.widthInFrames()
+        channel = pulsesToLabel.channel()
+        base    = pulsesToLabel.channelBases()
+        mid     = start + width / 2.0
+
+        y = 800
+        for i in xrange(len(base)):
+            ti = pg.TextItem(base[i])
+            ti.setParentItem(self)
+            ti.setPos(mid[i], 800)
+            self._textItems.append(ti)
+
     def paint(self, p, *args):
+        # Draw the pulse blips
         p.drawPicture(0, 0, self.picture)
+        # Draw pulse labels if the focus is small enough (< 500 frames)
+        self.labelPulses(self.pulsesToLabel())
 
     def boundingRect(self):
         return QtCore.QRectF(self.picture.boundingRect())
@@ -80,7 +129,6 @@ class TraceViewer(QtGui.QMainWindow):
         self.pls = pls
         self.initUI()
 
-
     def initUI(self):
         self.setWindowTitle("PRmm Trace Viewer")
         self.glw = pg.GraphicsLayoutWidget()
@@ -101,8 +149,8 @@ class TraceViewer(QtGui.QMainWindow):
         for i in xrange(4):
             self.plot1.plot(traceData[i,:], pen=(i,4))
 
-    def renderPulses(self, zmwPulses):
-        self.plot1.addItem(PulseOverlayItem(zmwPulses))
+    def renderPulses(self, plsZmw):
+        self.plot1.addItem(PulseOverlayItem(plsZmw, self.plot1))
 
     def setFocus(self, holeNumber, frameBegin=None, frameEnd=None):
         # TODO later: enable reusing data already loaded!
@@ -110,9 +158,9 @@ class TraceViewer(QtGui.QMainWindow):
         traceFrameExtent = (0, traceData.shape[1])
 
         if self.pls is not None:
-            zmwPulses = self.pls[holeNumber].pulses()
+            plsZmw = self.pls[holeNumber]
         else:
-            zmwPulses = None
+            plsZmw = None
 
         if (frameBegin is None) or (frameEnd is None):
             frameBegin, frameEnd = traceFrameExtent
@@ -124,7 +172,7 @@ class TraceViewer(QtGui.QMainWindow):
         # TODO: actually use the extent to set the viewable range
         self.renderTrace(traceData)
         if self.pls is not None:
-            self.renderPulses(zmwPulses)
+            self.renderPulses(plsZmw)
 
 
     def keyPressEvent(self, e):
@@ -161,12 +209,11 @@ def main(argv):
     app = QtGui.QApplication([])
     traceViewer = TraceViewer(trc, pls)
     traceViewer.setFocus(holeNumber)
-    if "--debug" in argv:
-        print "Debugging!"*100
-        import ipdb
-        ipdb.set_trace()
-    else:
-        app.exec_()
+
+    print args
+    if args["--debug"]:
+        debug_trace()
+    app.exec_()
 
 if __name__ == "__main__":
     import sys
