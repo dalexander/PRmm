@@ -17,8 +17,6 @@ setup(
         "pbcore >= 0.9.3",
         "numpy >= 1.6.0",
         "h5py >= 2.0.1",
-        "cffi"
-        ],
-    ext_modules=[Extension("PRmm/analysis/gbm/tree_predict",
-                           ["PRmm/analysis/gbm/tree_predict.c"],
-                           export_symbols=["innerPredict"])])
+        ]
+    )
+
