@@ -21,12 +21,20 @@ class TrxH5Reader(object):
         self._traceData = self.file["/TraceData/Traces"]
 
     def _initCodec(self):
-        self._codec = LutCodec(self.file["/TraceData/Codec/Decode"])
+        if "/TraceData/Codec/Decode" in self.file:
+            self._codec = LutCodec(self.file["/TraceData/Codec/Decode"])
+        else:
+            assert self.file["TraceData/Traces"].dtype == np.float32
+            self._codec = NoOpCodec()
 
     def _initHoleNumberMaps(self):
         holeNumbers = self.file["/TraceData/HoleNumber"][:]
         self._holeNumbers = holeNumbers
         self._holeNumberToIndex = dict(zip(holeNumbers, range(len(holeNumbers))))
+
+    @property
+    def representation(self):
+        return self.file["/TraceData"].attrs["Representation"]
 
     @property
     def movieName(self):
@@ -52,3 +60,11 @@ class LutCodec(object):
 
     def decode(self, arr):
         return self._lut[arr]
+
+class NoOpCodec(object):
+    def __init__(self):
+        pass
+
+    def decode(self, arr):
+        # assert it's 16 bit
+        return arr
