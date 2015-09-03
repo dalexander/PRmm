@@ -182,7 +182,7 @@ class TraceViewer(QtGui.QMainWindow):
             self.plot1.plot(traceData[i,:], pen=(i,4))
 
     def renderPulses(self, plsZmw):
-        self.plot1.addItem(PulseOverlayItem(plsZmw, self.plot1))
+        self.plot1.addItem(PulsesOverlayItem(plsZmw, self.plot1))
     @property
     def movieName(self):
         return self.trc.movieName
