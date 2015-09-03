@@ -12,7 +12,7 @@ import pyqtgraph as pg
 from docopt import docopt
 from pyqtgraph.Qt import QtCore, QtGui
 
-from PRmm.stack import TrxH5Reader, PlxH5Reader
+from PRmm.io import TrxH5Reader, PlxH5Reader
 
 def debug_trace():
     # http://stackoverflow.com/questions/1736015/debugging-a-pyqt4-app
