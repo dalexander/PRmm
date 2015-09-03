@@ -1,7 +1,9 @@
 #!/usr/bin/env python
 """
 Usage: traceViewer1.py [--debug]
-                       [--pulse=PLXFILE]
+                       [--pls=PLXFILE]
+                       [--bas=BAXFILE]
+                       [--aln=ALNFILE]
                        --hole=HOLENUMBER
                        TRXFILE
 """
@@ -13,13 +15,45 @@ from pyqtgraph.Qt import QtCore, QtGui
 from PRmm.stack import TrxH5Reader, PlxH5Reader
 
 def debug_trace():
-  # http://stackoverflow.com/questions/1736015/debugging-a-pyqt4-app
-  from ipdb import set_trace
-  QtCore.pyqtRemoveInputHook()
-  set_trace()
+    # http://stackoverflow.com/questions/1736015/debugging-a-pyqt4-app
+    from ipdb import set_trace
+    QtCore.pyqtRemoveInputHook()
+    set_trace()
 
 
-class PulseOverlayItem(pg.GraphicsObject):
+class Region(object):
+    """
+    A region, in base coordinates
+    """
+    # These agree with regions enum defined for bas/bax files
+    ADAPTER_REGION = 0
+    INSERT_REGION  = 1
+    HQ_REGION      = 2
+
+    # This is new
+    ALIGNMENT_REGION = 101
+
+    def __init__(self, type, startBase, endBase, name):
+        self.type      = type
+        self.startBase = startBase
+        self.endBase   = endBase
+        self.name      = name
+
+
+class RegionsOverlayItem(pg.GraphicsObject):
+    """
+    Region display
+    """
+    def __init__(self, regions):
+        pg.GraphicsObject.__init__(self)
+        self.generatePicture()
+
+    def generatePicture(self):
+        pass
+
+
+
+class PulsesOverlayItem(pg.GraphicsObject):
     """
     The pulses!
     """
@@ -48,6 +82,7 @@ class PulseOverlayItem(pg.GraphicsObject):
             c     = channel[i]
             start = startFrame[i]
             width = widthInFrames[i]
+            end = start + width
 
             p.setPen(pens[c])
             p.drawLine(QtCore.QPointF(start, y), QtCore.QPointF(start+width, y))
@@ -73,17 +108,17 @@ class PulseOverlayItem(pg.GraphicsObject):
 
         if pulsesToLabel is None: return
 
-        print pulsesToLabel.channelBases()
-
-        start   = pulsesToLabel.startFrame()
-        width   = pulsesToLabel.widthInFrames()
-        channel = pulsesToLabel.channel()
-        base    = pulsesToLabel.channelBases()
-        mid     = start + width / 2.0
+        start      = pulsesToLabel.startFrame()
+        width      = pulsesToLabel.widthInFrames()
+        channel    = pulsesToLabel.channel()
+        base       = pulsesToLabel.channelBases()
+        isBase     = pulsesToLabel.isBase()
+        mid        = start + width / 2.0
 
         y = 800
         for i in xrange(len(base)):
-            ti = pg.TextItem(base[i])
+            pulseLabel = base[i] if isBase[i] else "-"
+            ti = pg.TextItem(pulseLabel)
             ti.setParentItem(self)
             ti.setPos(mid[i], 800)
             self._textItems.append(ti)
@@ -98,14 +133,12 @@ class PulseOverlayItem(pg.GraphicsObject):
         return QtCore.QRectF(self.picture.boundingRect())
 
 
-
 class CustomViewBox(pg.ViewBox):
     """
     CustomViewBox implements the following behavior:
       - prevents scaling or panning in the y direction
       - ?
     """
-
     def __init__(self):
         super(CustomViewBox, self).__init__()
 
@@ -118,15 +151,17 @@ class CustomViewBox(pg.ViewBox):
 
 class TraceViewer(QtGui.QMainWindow):
 
-    def __init__(self, trc, pls=None):
+    def __init__(self, trc,
+                 pls=None, bas=None, aln=None):
         """
         trc:        a TrxH5Reader object
         pls:        a PlxH5Reader object (or None)
-        holeNumber: integer holenumber
         """
         super(TraceViewer, self).__init__()
         self.trc = trc
         self.pls = pls
+        self.bas = bas
+        self.aln = aln
         self.initUI()
 
     def initUI(self):
@@ -201,11 +236,19 @@ def main(argv):
     trcFname = args["TRXFILE"]
     trc = TrxH5Reader(trcFname)
     holeNumber = int(args["--hole"])
-    if args["--pulse"] is not None:
-        pls = PlxH5Reader(args["--pulse"])
+
+    # Optional readers
+    if args["--pls"] is not None:
+        if args["--bas"] is not None:
+            pls = PlxH5Reader(args["--pls"], args["--bas"])
+        else:
+            pls = PlxH5Reader(args["--pls"])
     else:
         pls = None
-
+    if args["--aln"] is not None:
+        aln = (args["--aln"])
+    else:
+        aln = None
     app = QtGui.QApplication([])
     traceViewer = TraceViewer(trc, pls)
     traceViewer.setFocus(holeNumber)
