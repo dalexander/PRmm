@@ -1,0 +1,32 @@
+
+* Pulse display
+  - [ ] Get the letters displaying
+  - [ ] Tooltip (so I can inspect LabelQV)
+
+* Input
+  - [ ] Bas input
+  - [ ] Aln input
+
+* Regions
+  - [ ] HQ region
+  - [ ] Adapters
+  - [ ] Alignments
+  - [ ] Overlay text label on alignment (accuracy)
+
+* Alignment display
+  This is actually not that difficult!
+
+* ROI
+  - [ ] Let the bottom show the entire read, with ROI box; top shows the zoom-in on the ROI
+
+* Plotting
+  Consider laying out a small square plot next to the "entire read" focus on the bottom
+
+  - [ ] Dotplot?
+  - [ ] 2C2A cluster plot
+
+* Maneuvering
+  - [ ] Arrow keys to scroll
+  - [ ] Key to zoom
+  - [ ] Key to navigate history
+  - [ ] Inertial scrolling
