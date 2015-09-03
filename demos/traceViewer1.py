@@ -162,21 +162,18 @@ class TraceViewer(QtGui.QMainWindow):
         self.pls = pls
         self.bas = bas
         self.aln = aln
+        self.holeNumber = None
         self.initUI()
 
     def initUI(self):
         self.setWindowTitle("PRmm Trace Viewer")
         self.glw = pg.GraphicsLayoutWidget()
         self.setCentralWidget(self.glw)
-
-        self.plot1 = pg.PlotItem(viewBox=CustomViewBox(), title="Plot1")
+        self.plot1 = pg.PlotItem(viewBox=CustomViewBox(), title="")
         self.glw.addItem(self.plot1)
-
         self.glw.nextRow()
-
-        self.plot2 = pg.PlotItem(viewBox=CustomViewBox(), title="Plot2")
+        self.plot2 = pg.PlotItem(viewBox=CustomViewBox(), title="")
         self.glw.addItem(self.plot2)
-
         self.show()
 
     def renderTrace(self, traceData):
@@ -186,8 +183,17 @@ class TraceViewer(QtGui.QMainWindow):
 
     def renderPulses(self, plsZmw):
         self.plot1.addItem(PulseOverlayItem(plsZmw, self.plot1))
+    @property
+    def movieName(self):
+        return self.trc.movieName
+
+    @property
+    def zmwName(self):
+        return self.movieName + "/" + str(self.holeNumber)
 
     def setFocus(self, holeNumber, frameBegin=None, frameEnd=None):
+        self.holeNumber = holeNumber
+
         # TODO later: enable reusing data already loaded!
         traceData = self.trc[holeNumber]
         traceFrameExtent = (0, traceData.shape[1])
@@ -200,9 +206,12 @@ class TraceViewer(QtGui.QMainWindow):
         if (frameBegin is None) or (frameEnd is None):
             frameBegin, frameEnd = traceFrameExtent
 
+        # Disallow zooming out beyond the trace extent
         self.plot1.vb.setLimits(
             xMin=traceFrameExtent[0], xMax=traceFrameExtent[1],
             maxXRange=traceFrameExtent)
+
+        self.plot1.setTitle(self.zmwName)
 
         # TODO: actually use the extent to set the viewable range
         self.renderTrace(traceData)

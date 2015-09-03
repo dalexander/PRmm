@@ -29,6 +29,10 @@ class TrxH5Reader(object):
         self._holeNumberToIndex = dict(zip(holeNumbers, range(len(holeNumbers))))
 
     @property
+    def movieName(self):
+        return self.file["/ScanData/RunInfo"].attrs["MovieName"]
+
+    @property
     def holeNumbers(self):
         return self._holeNumbers
 
@@ -48,9 +52,3 @@ class LutCodec(object):
 
     def decode(self, arr):
         return self._lut[arr]
-
-class TraceZmw(object):
-    pass
-
-class ZmwTrace(object):
-    pass
