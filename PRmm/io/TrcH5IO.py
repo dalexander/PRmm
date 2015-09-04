@@ -16,15 +16,15 @@ class TrxH5Reader(object):
     def __init__(self, fname):
         self.filename = op.abspath(op.expanduser(fname))
         self.file = h5py.File(self.filename, "r")
+        self._traceData = self.file["/TraceData/Traces"]
         self._initCodec()
         self._initHoleNumberMaps()
-        self._traceData = self.file["/TraceData/Traces"]
 
     def _initCodec(self):
         if "/TraceData/Codec/Decode" in self.file:
             self._codec = LutCodec(self.file["/TraceData/Codec/Decode"])
         else:
-            assert self.file["TraceData/Traces"].dtype == np.float32
+            assert self._traceData.dtype == np.float32
             self._codec = NoOpCodec()
 
     def _initHoleNumberMaps(self):
@@ -35,6 +35,10 @@ class TrxH5Reader(object):
     @property
     def representation(self):
         return self.file["/TraceData"].attrs["Representation"]
+
+    @property
+    def numChannels(self):
+        return self._traceData.shape[1]
 
     @property
     def movieName(self):
