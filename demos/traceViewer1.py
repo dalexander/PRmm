@@ -177,9 +177,9 @@ class TraceViewer(QtGui.QMainWindow):
         self.show()
 
     def renderTrace(self, traceData):
-        # Clear plot1 first?
-        for i in xrange(4):
-            self.plot1.plot(traceData[i,:], pen=(i,4))
+        numChannels = traceData.shape[0]
+        for i in xrange(numChannels):
+            self.plot1.plot(traceData[i,:], pen=(i,numChannels))
 
     def renderPulses(self, plsZmw):
         self.plot1.addItem(PulsesOverlayItem(plsZmw, self.plot1))
