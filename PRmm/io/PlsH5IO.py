@@ -29,6 +29,10 @@ class PlxZmw(object):
     def _plxOffsets(self):
         return self.plxH5._plxOffsetsByHole[self.holeNumber]
 
+    @property
+    def baseMap(self):
+        return self.plxH5.baseMap
+
     def baseline(self):
         # Cache this, or the array, upstream?
         return self.plxH5._pulsecallsZmwGroup["BaselineLevel"][self.plxIndex,:]
@@ -92,11 +96,15 @@ class ZmwPulses(object):
     def _getPlxOffsets(self):
         return self.plxZmw.plxH5._plxOffsetsByHole
 
+    @property
+    def baseMap(self):
+        return self.plxZmw.baseMap
+
     def channel(self):
         return arrayFromDataset(self._pulsecallsGroup["Channel"],
                                 self.plxOffsetBegin, self.plxOffsetEnd)
     def channelBases(self):
-        CHANNEL_BASES = np.fromstring("TGAC", dtype=np.uint8)
+        CHANNEL_BASES = np.fromstring(self.baseMap, dtype=np.uint8)
         return CHANNEL_BASES[self.channel()].tostring()
 
 
@@ -148,6 +156,7 @@ class PlxH5Reader(object):
     def __init__(self, filename, baxFilename=None):
         self.filename = op.abspath(op.expanduser(filename))
         self.file = h5py.File(self.filename, "r")
+        self.baseMap = self.file["/ScanData/DyeSet"].attrs["BaseMap"][:]
         self._pulsecallsGroup = self.file["/PulseData/PulseCalls"]
         self._pulsecallsZmwGroup = self.file["/PulseData/PulseCalls/ZMW"]
         self._pulsecallsZmwMetrics = self.file["/PulseData/PulseCalls/ZMWMetrics"]
