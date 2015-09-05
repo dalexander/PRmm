@@ -12,7 +12,7 @@ import pyqtgraph as pg
 from docopt import docopt
 from pyqtgraph.Qt import QtCore, QtGui
 
-from PRmm.io import TrxH5Reader, PlxH5Reader
+from PRmm.io import TrxH5Reader, PlxH5Reader, BasecallsUnavailable
 
 def debug_trace():
     # http://stackoverflow.com/questions/1736015/debugging-a-pyqt4-app
@@ -112,8 +112,11 @@ class PulsesOverlayItem(pg.GraphicsObject):
         width      = pulsesToLabel.widthInFrames()
         channel    = pulsesToLabel.channel()
         base       = pulsesToLabel.channelBases()
-        isBase     = pulsesToLabel.isBase()
         mid        = start + width / 2.0
+        try:
+            isBase     = pulsesToLabel.isBase()
+        except BasecallsUnavailable:
+            isBase = np.ones_like(channel, dtype=bool)
 
         y = 800
         for i in xrange(len(base)):

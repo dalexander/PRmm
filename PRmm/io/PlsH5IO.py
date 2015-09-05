@@ -1,5 +1,5 @@
 
-__all__ = [ "PlxH5Reader" ]
+__all__ = [ "PlxH5Reader", "BasecallsUnavailable" ]
 
 from pbcore.io.BasH5IO import (_makeOffsetsDataStructure, arrayFromDataset, BaxH5Reader)
 
@@ -8,6 +8,8 @@ import numpy as np
 import os.path as op
 from bisect import bisect_left, bisect_right
 
+
+class BasecallsUnavailable(Exception): pass
 
 class PlxZmw(object):
     __slots__ = [ "plxH5", "holeNumber", "plxIndex", "baxPeer", "pulseIndex" ]
@@ -131,7 +133,7 @@ class ZmwPulses(object):
         P2B
         """
         if self.plxZmw.baxPeer is None:
-            raise RuntimeError, "basecalls unavailable"
+            raise BasecallsUnavailable()
         else:
             # for pi in [pulseStart, pulseEnd]:
             #    is pi in self.plxZmw.pulseIndex[baseStart:baseEnd]?
