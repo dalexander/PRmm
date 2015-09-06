@@ -4,6 +4,7 @@ from pyqtgraph.Qt import QtCore, QtGui
 
 from PRmm.io import BasecallsUnavailable
 
+# TODO: move this somewhere else?
 class Region(object):
     """
     A region, in *frame* coordinates
@@ -16,23 +17,68 @@ class Region(object):
     # This is new
     ALIGNMENT_REGION = 101
 
-    def __init__(self, kind, startFrame, endFrame, name):
-        self.kind       = kind
+    def __init__(self, regionType, startFrame, endFrame, name):
+        self.regionType = regionType
         self.startFrame = startFrame
         self.endFrame   = endFrame
         self.name       = name
+
+    @staticmethod
+    def regionsFromBasZmw(basZmw):
+        basRead = basZmw.readNoQC()
+        endFrames = np.cumsum(basRead.PreBaseFrames() + basRead.WidthInFrames())
+        startFrames = endFrames - basRead.PreBaseFrames()
+        for basRegion in basZmw.regionTable:
+            startFrame = startFrames[basRegion.regionStart]
+            endFrame = endFrames[basRegion.regionEnd-1] # TODO: check this logic
+            yield Region(basRegion.regionType, startFrame, endFrame, "")
+
+
 
 
 class RegionsOverlayItem(pg.GraphicsObject):
     """
     Region display
     """
-    def __init__(self, regions):
+    pens = { Region.ADAPTER_REGION   : pg.mkPen(pg.mkColor(0,0,100), width=2),
+             Region.INSERT_REGION    : pg.mkPen(pg.mkColor(0,100,0), width=2),
+             Region.HQ_REGION        : pg.mkPen(pg.mkColor(100,0,0), width=2),
+             Region.ALIGNMENT_REGION : pg.mkPen(pg.mkColor(100,100,0), width=2)  }
+
+    def __init__(self, regions, plot):
         pg.GraphicsObject.__init__(self)
+        self.plot = plot
+        self.regions = regions
         self.generatePicture()
 
+    @property
+    def regionOverlayY(self):
+        a, b = self.plot.visibleSpanY
+        return a + (b - a) * 0.97
+
+    @property
+    def hqRegionOverlayY(self):
+        a, b = self.plot.visibleSpanY
+        return a + (b - a) * 1.00
+
     def generatePicture(self):
-        pass
+        self.picture = QtGui.QPicture()
+        p = QtGui.QPainter(self.picture)
+        for region in self.regions:
+            p.setPen(self.pens[region.regionType])
+            if region.regionType == Region.HQ_REGION:
+                y = self.hqRegionOverlayY
+            else:
+                y = self.regionOverlayY
+            p.drawLine(QtCore.QPointF(region.startFrame, y),
+                       QtCore.QPointF(region.endFrame, y))
+
+    def paint(self, p, *args):
+        p.drawPicture(0, 0, self.picture)
+
+    def boundingRect(self):
+        return QtCore.QRectF(self.picture.boundingRect())
+
 
 
 class PulsesOverlayItem(pg.GraphicsObject):
@@ -40,13 +86,16 @@ class PulsesOverlayItem(pg.GraphicsObject):
     The pulses!
     """
     def __init__(self, plsZmw, plot):
-        # The `plot` argument is just used to determine the
-        # effective visible area.  Not sure if there is a better way!
         pg.GraphicsObject.__init__(self)
         self.plsZmw = plsZmw
         self.plot = plot
         self.generatePicture()
         self._textItems = []
+
+    @property
+    def pulseLabelY(self):
+        a, b = self.plot.visibleSpanY
+        return a + (b - a) * 0.84
 
     def generatePicture(self):
         # Precompute a QPicture object
@@ -65,7 +114,6 @@ class PulsesOverlayItem(pg.GraphicsObject):
             start = startFrame[i]
             width = widthInFrames[i]
             end = start + width
-
             p.setPen(pens[c])
             p.drawLine(QtCore.QPointF(start, y), QtCore.QPointF(start+width, y))
 
@@ -100,10 +148,10 @@ class PulsesOverlayItem(pg.GraphicsObject):
         except BasecallsUnavailable:
             isBase = np.ones_like(channel, dtype=bool)
 
-        y = self.plot.pulseLabelY
+        y = self.pulseLabelY
         for i in xrange(len(base)):
             pulseLabel = base[i] if isBase[i] else "-"
-            ti = pg.TextItem(pulseLabel)
+            ti = pg.TextItem(pulseLabel, anchor=(0.5, 0.5))
             ti.setParentItem(self)
             ti.setPos(mid[i], y)
             self._textItems.append(ti)

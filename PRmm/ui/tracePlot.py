@@ -26,19 +26,17 @@ class TracePlotItem(pg.PlotItem):
     def __init__(self, title=None):
         super(TracePlotItem, self).__init__(viewBox=TraceViewBox(), title=title)
 
-    # -- Coordinates where drawing clients should draw things
     @property
-    def pulseOverlayY(self):
-        return 0
+    def visibleSpanX(self):
+        return self.viewRange()[0]
 
     @property
-    def pulseLabelY(self):
-        return 800
+    def visibleSpanY(self):
+        return self.viewRange()[1]
 
-    @property
-    def regionOverlayY(self):
-        pass
 
-    @property
-    def hqRegionOverlayY(self):
-        pass
+
+if __name__ == "__main__":
+    a = QtGui.QApplication([])
+    tpi = TracePlotItem()
+    tpi.plot(np.sin(np.arange(10000)))

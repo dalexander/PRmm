@@ -12,6 +12,8 @@ import pyqtgraph as pg
 from docopt import docopt
 from pyqtgraph.Qt import QtCore, QtGui
 
+from pbcore.io import BasH5Reader
+
 from PRmm.io import TrxH5Reader, PlxH5Reader, BasecallsUnavailable
 from PRmm.ui.overlays import *
 from PRmm.ui.tracePlot import *
@@ -59,6 +61,9 @@ class TraceViewer(QtGui.QMainWindow):
     def renderPulses(self, plsZmw):
         self.plot1.addItem(PulsesOverlayItem(plsZmw, self.plot1))
 
+    def renderRegions(self, regions):
+        self.plot1.addItem(RegionsOverlayItem(regions, self.plot1))
+
     @property
     def movieName(self):
         return self.trc.movieName
@@ -79,6 +84,11 @@ class TraceViewer(QtGui.QMainWindow):
         else:
             plsZmw = None
 
+        if self.bas is not None:
+            self.basZmw = self.bas[holeNumber]
+        else:
+            self.basZmw = None
+
         if (frameBegin is None) or (frameEnd is None):
             frameBegin, frameEnd = traceFrameExtent
 
@@ -89,11 +99,13 @@ class TraceViewer(QtGui.QMainWindow):
 
         self.plot1.setTitle(self.zmwName)
 
-        # TODO: actually use the extent to set the viewable range
         self.renderTrace(traceData)
-        if self.pls is not None:
+        if plsZmw is not None:
             self.renderPulses(plsZmw)
 
+        if self.basZmw is not None:
+            regions = Region.regionsFromBasZmw(self.basZmw)
+            self.renderRegions(regions)
 
     def keyPressEvent(self, e):
         # GOAL:
@@ -116,7 +128,7 @@ class TraceViewer(QtGui.QMainWindow):
 
 def main():
     args = docopt(__doc__)
-    if args["--debug"] is not None:
+    if args["--debug"] is not False:
         print "Args: ", args
     trcFname = args["TRXFILE"]
     trc = TrxH5Reader(trcFname)
@@ -130,15 +142,21 @@ def main():
             pls = PlxH5Reader(args["--pls"])
     else:
         pls = None
+
+    # TODO: Factor pls/bas better
+    if args["--bas"] is not None:
+        bas = BasH5Reader(args["--bas"])
+    else:
+        bas = None
+
     if args["--aln"] is not None:
         aln = (args["--aln"])
     else:
         aln = None
     app = QtGui.QApplication([])
-    traceViewer = TraceViewer(trc, pls)
+    traceViewer = TraceViewer(trc, pls, bas)
     traceViewer.setFocus(holeNumber)
 
-    print args
     if args["--debug"]:
         debug_trace()
     app.exec_()
