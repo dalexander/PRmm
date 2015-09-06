@@ -6,6 +6,8 @@
 * Input
   - [ ] Bas input
   - [ ] Aln input
+  - [ ] DWIM mode
+  - [ ] Multipart
 
 * Regions
   - [ ] HQ region
@@ -30,3 +32,6 @@
   - [ ] Key to zoom
   - [ ] Key to navigate history
   - [ ] Inertial scrolling
+  - [ ] n/p for next/prev ZMW within interest list
+
+
