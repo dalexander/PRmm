@@ -100,12 +100,12 @@ class PulsesOverlayItem(pg.GraphicsObject):
         except BasecallsUnavailable:
             isBase = np.ones_like(channel, dtype=bool)
 
-        y = 800
+        y = self.plot.pulseLabelY
         for i in xrange(len(base)):
             pulseLabel = base[i] if isBase[i] else "-"
             ti = pg.TextItem(pulseLabel)
             ti.setParentItem(self)
-            ti.setPos(mid[i], 800)
+            ti.setPos(mid[i], y)
             self._textItems.append(ti)
 
     def paint(self, p, *args):

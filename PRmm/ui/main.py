@@ -44,10 +44,10 @@ class TraceViewer(QtGui.QMainWindow):
         self.setWindowTitle("PRmm Trace Viewer")
         self.glw = pg.GraphicsLayoutWidget()
         self.setCentralWidget(self.glw)
-        self.plot1 = pg.PlotItem(viewBox=CustomViewBox(), title="")
+        self.plot1 = TracePlotItem()
         self.glw.addItem(self.plot1)
         self.glw.nextRow()
-        self.plot2 = pg.PlotItem(viewBox=CustomViewBox(), title="")
+        self.plot2 = TracePlotItem()
         self.glw.addItem(self.plot2)
         self.show()
 
