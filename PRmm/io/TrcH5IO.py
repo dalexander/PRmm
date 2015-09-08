@@ -24,7 +24,7 @@ class TrxH5Reader(object):
         if "/TraceData/Codec/Decode" in self.file:
             self._codec = LutCodec(self.file["/TraceData/Codec/Decode"])
         else:
-            assert self._traceData.dtype == np.float32
+            assert self._traceData.dtype in (np.float32, np.int16)
             self._codec = NoOpCodec()
 
     def _initHoleNumberMaps(self):
