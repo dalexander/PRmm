@@ -134,25 +134,23 @@ def main():
     trc = TrxH5Reader(trcFname)
     holeNumber = int(args["--hole"])
 
-    # Optional readers
-    if args["--pls"] is not None:
-        if args["--bas"] is not None:
-            pls = PlxH5Reader(args["--pls"], args["--bas"])
-        else:
-            pls = PlxH5Reader(args["--pls"])
-    else:
-        pls = None
-
-    # TODO: Factor pls/bas better
+    # -- Optional readers
     if args["--bas"] is not None:
         bas = BasH5Reader(args["--bas"])
     else:
         bas = None
 
+    if args["--pls"] is not None:
+        pls = PlxH5Reader(args["--pls"], bas)
+    else:
+        pls = None
+
     if args["--aln"] is not None:
         aln = (args["--aln"])
     else:
         aln = None
+    # --
+
     app = QtGui.QApplication([])
     traceViewer = TraceViewer(trc, pls, bas)
     traceViewer.setFocus(holeNumber)

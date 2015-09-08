@@ -15,7 +15,6 @@ class PlxZmw(object):
     __slots__ = [ "plxH5", "holeNumber", "plxIndex", "baxPeer", "pulseIndex" ]
 
     def __init__(self, plxH5, holeNumber):
-        #super(PlxZmw, self).__init__(plxH5, holeNumber)
         self.holeNumber = holeNumber
         self.plxH5 = plxH5
         self.plxIndex = self.plxH5._plxHoleNumberToIndex[holeNumber]
@@ -153,7 +152,7 @@ class ZmwPulses(object):
 
 class PlxH5Reader(object):
 
-    def __init__(self, filename, baxFilename=None):
+    def __init__(self, filename, bax=None):
         self.filename = op.abspath(op.expanduser(filename))
         self.file = h5py.File(self.filename, "r")
         self.baseMap = self.file["/ScanData/DyeSet"].attrs["BaseMap"][:]
@@ -163,14 +162,12 @@ class PlxH5Reader(object):
         holeNumbers = self._pulsecallsGroup["ZMW/HoleNumber"][:]
         self._plxHoleNumberToIndex = dict(zip(holeNumbers, range(len(holeNumbers))))
         self._plxOffsetsByHole = _makeOffsetsDataStructure(self._pulsecallsGroup)
-
-        if baxFilename is None:
+        if bax is None:
             self.baxPeer = None
+        elif isinstance(bax, str):
+            self.baxPeer = BaxH5Reader(baxFilename)
         else:
-            self._openBaxPeer(baxFilename)
-
-    def _openBaxPeer(self, baxFilename):
-        self.baxPeer = BaxH5Reader(baxFilename)
+            self.baxPeer = bax
 
     def __getitem__(self, holeNumber):
         return PlxZmw(self, holeNumber)
