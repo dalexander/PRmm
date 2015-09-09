@@ -118,6 +118,20 @@ class ZmwPulses(object):
     def endFrame(self):
         return self.startFrame() + self.widthInFrames()
 
+
+    def prePulseFrames(self):
+        # This is a bit tricky.  Basically we want startFrame - lag(endFrame)
+        # sfp = startframeprevious, etc.
+        if self.plxOffsetBegin == 0:
+            efp = np.hstack([[0], self.endFrame()[:-1]])
+        else:
+            sfp = arrayFromDataset(self._pulsecallsGroup["StartFrame"],
+                                   self.plxOffsetBegin - 1, self.plxOffsetEnd - 1)
+            wfp = arrayFromDataset(self._pulsecallsGroup["WidthInFrames"],
+                                   self.plxOffsetBegin - 1, self.plxOffsetEnd - 1)
+            efp = sfp + wfp
+        return self.startFrame() - efp
+
     def midSignal(self):
         return arrayFromDataset(self._pulsecallsGroup["MidSignal"],
                                 self.plxOffsetBegin, self.plxOffsetEnd)
