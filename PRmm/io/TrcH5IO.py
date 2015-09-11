@@ -45,6 +45,14 @@ class TrxH5Reader(object):
         return self.file["/ScanData/RunInfo"].attrs["MovieName"]
 
     @property
+    def platformName(self):
+        return self.file["/ScanData/RunInfo"].attrs["PlatformName"]
+
+    @property
+    def frameRate(self):
+        return self.file["/ScanData/AcqParams"].attrs["FrameRate"]
+
+    @property
     def holeNumbers(self):
         return self._holeNumbers
 
