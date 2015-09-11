@@ -53,6 +53,14 @@ class TrxH5Reader(object):
         return self.file["/ScanData/AcqParams"].attrs["FrameRate"]
 
     @property
+    def movieLengthInFrames(self):
+        return self._traceData.shape[2]
+
+    @property
+    def movieLength(self):
+        return float(self.movieLengthInFrames) / self.frameRate
+
+    @property
     def holeNumbers(self):
         return self._holeNumbers
 
