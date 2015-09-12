@@ -44,11 +44,11 @@ class ReadersFixture(object):
 
         self.trcFname = trcFname
         if self.trcFname is not None:
-            self.trcF = TrxH5Reader(self.trcFname)
+            self.trcF = TrcH5Reader(self.trcFname)
 
         self.plsFname = plsFname
         if self.plsFname is not None:
-            self.plsF = PlxH5Reader(self.plsFname)
+            self.plsF = PlsH5Reader(self.plsFname)
 
         self.basFname = basFname
         if self.basFname is not None:
@@ -78,12 +78,8 @@ class ReadersFixture(object):
     def fromPaths(reportsPath, secondaryJobPath):
         alnFname = findOneOrNone("*.cmp.h5", secondaryJobPath)
         basFname = findOneOrNone("*.bas.h5", reportsPath)
-        # HACK below pending multipart readers!
-        plsFname = findOneOrNone("*.pls.h5", reportsPath) or \
-                   findOneOrNone("*.1.plx.h5", reportsPath)
-        trcFname = findOneOrNone("*.trc.h5", updir(reportsPath)) or \
-                   findOneOrNone("*.1.trx.h5", updir(reportsPath))
-        #--
+        plsFname = findOneOrNone("*.pls.h5", reportsPath)
+        trcFname = findOneOrNone("*.trc.h5", updir(reportsPath))
         return ReadersFixture(trcFname=trcFname, plsFname=plsFname,
                               basFname=basFname, alnFname=alnFname)
 

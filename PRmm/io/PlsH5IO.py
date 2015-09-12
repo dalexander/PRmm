@@ -1,5 +1,5 @@
 
-__all__ = [ "PlxH5Reader", "BasecallsUnavailable" ]
+__all__ = [ "PlxH5Reader", "PlsH5Reader", "BasecallsUnavailable" ]
 
 from pbcore.io.BasH5IO import (_makeOffsetsDataStructure, arrayFromDataset, BaxH5Reader)
 
@@ -8,6 +8,7 @@ import numpy as np
 import os.path as op
 from bisect import bisect_left, bisect_right
 
+from .multipart import MultipartReader
 
 class BasecallsUnavailable(Exception): pass
 
@@ -180,5 +181,12 @@ class PlxH5Reader(object):
         else:
             self.baxPeer = bax
 
+    def __contains__(self, holeNumber):
+        return holeNumber in self._holeNumberToIndex
+
     def __getitem__(self, holeNumber):
         return PlxZmw(self, holeNumber)
+
+
+class PlsH5Reader(MultipartReader):
+    PART_READER_CLASS = PlxH5Reader

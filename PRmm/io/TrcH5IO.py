@@ -1,9 +1,10 @@
-__all__ = [ "TrxH5Reader" ]
+__all__ = [ "TrxH5Reader", "TrcH5Reader" ]
 
 import h5py
 import os.path as op
 import numpy as np
 
+from .multipart import MultipartReader
 
 class HoleStatus(object):
     (SEQUENCING, ANTIHOLE, FIDUCIAL, SUSPECT,
@@ -13,6 +14,21 @@ class TrxH5Reader(object):
     """
     Reader for trx.h5 files
     """
+    class LutCodec(object):
+        def __init__(self, lut):
+            self._lut = lut[:]
+
+        def decode(self, arr):
+            return self._lut[arr]
+
+    class NoOpCodec(object):
+        def __init__(self):
+            pass
+
+        def decode(self, arr):
+            # assert it's 16 bit
+            return arr
+
     def __init__(self, fname):
         self.filename = op.abspath(op.expanduser(fname))
         self.file = h5py.File(self.filename, "r")
@@ -22,10 +38,10 @@ class TrxH5Reader(object):
 
     def _initCodec(self):
         if "/TraceData/Codec/Decode" in self.file:
-            self._codec = LutCodec(self.file["/TraceData/Codec/Decode"])
+            self._codec = TrxH5Reader.LutCodec(self.file["/TraceData/Codec/Decode"])
         else:
             assert self._traceData.dtype in (np.float32, np.int16)
-            self._codec = NoOpCodec()
+            self._codec = TrxH5Reader.NoOpCodec()
 
     def _initHoleNumberMaps(self):
         holeNumbers = self.file["/TraceData/HoleNumber"][:]
@@ -68,23 +84,47 @@ class TrxH5Reader(object):
     def codec(self):
         return self._codec
 
+    def __contains__(self, holeNumber):
+        return holeNumber in self._holeNumbers
+
     def __getitem__(self, holeNumber):
         idx = self._holeNumberToIndex[holeNumber]
         arr = self._traceData[idx]
         return self.codec.decode(arr)
 
 
-class LutCodec(object):
-    def __init__(self, lut):
-        self._lut = lut[:]
 
-    def decode(self, arr):
-        return self._lut[arr]
+class TrcH5Reader(MultipartReader):
+    PART_READER_CLASS = TrxH5Reader
 
-class NoOpCodec(object):
-    def __init__(self):
-        pass
+    @property
+    def representation(self):
+        return self._parts[0].representation
 
-    def decode(self, arr):
-        # assert it's 16 bit
-        return arr
+    @property
+    def numChannels(self):
+        return self._parts[0].numChannels
+
+    @property
+    def movieName(self):
+        return self._parts[0].movieName
+
+    @property
+    def platformName(self):
+        return self._parts[0].platformName
+
+    @property
+    def frameRate(self):
+        return self._parts[0].frameRate
+
+    @property
+    def movieLengthInFrames(self):
+        return self._parts[0].movieLengthInFrames
+
+    @property
+    def movieLength(self):
+        return self._parts[0].movieLength
+
+    @property
+    def holeNumbers(self):
+        return np.hstack(part.holeNumbers for part in self._parts)

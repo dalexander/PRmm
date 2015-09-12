@@ -14,7 +14,7 @@ from pyqtgraph.Qt import QtCore, QtGui
 
 from pbcore.io import BasH5Reader
 
-from PRmm.io import TrxH5Reader, PlxH5Reader, BasecallsUnavailable
+from PRmm.io import TrcH5Reader, PlsH5Reader, BasecallsUnavailable
 from PRmm.ui.overlays import *
 from PRmm.ui.tracePlot import *
 
@@ -131,7 +131,7 @@ def main():
     if args["--debug"] is not False:
         print "Args: ", args
     trcFname = args["TRXFILE"]
-    trc = TrxH5Reader(trcFname)
+    trc = TrcH5Reader(trcFname)
     holeNumber = int(args["--hole"])
 
     # -- Optional readers
@@ -141,7 +141,7 @@ def main():
         bas = None
 
     if args["--pls"] is not None:
-        pls = PlxH5Reader(args["--pls"], bas)
+        pls = PlsH5Reader(args["--pls"], bas)
     else:
         pls = None
 
