@@ -17,7 +17,7 @@ class PlxZmw(object):
     def __init__(self, plxH5, holeNumber):
         self.holeNumber = holeNumber
         self.plxH5 = plxH5
-        self.plxIndex = self.plxH5._plxHoleNumberToIndex[holeNumber]
+        self.plxIndex = self.plxH5._holeNumberToIndex[holeNumber]
         if self.plxH5.baxPeer:
             self.baxPeer = self.plxH5.baxPeer[holeNumber]
             self.pulseIndex = self.baxPeer.readNoQC().PulseIndex()
@@ -25,8 +25,8 @@ class PlxZmw(object):
             self.baxPeer = None
 
     @property
-    def _plxOffsets(self):
-        return self.plxH5._plxOffsetsByHole[self.holeNumber]
+    def _offsets(self):
+        return self.plxH5._offsetsByHole[self.holeNumber]
 
     @property
     def baseMap(self):
@@ -46,8 +46,8 @@ class PlxZmw(object):
     def pulsesByFrameInterval(self, beginFrame, endFrame):
         # TODO: need to optimize this
         pcg = self.plxH5._pulsecallsGroup
-        startFrame_    = arrayFromDataset(pcg["StartFrame"],    *self._plxOffsets)
-        widthInFrames_ = arrayFromDataset(pcg["WidthInFrames"], *self._plxOffsets)
+        startFrame_    = arrayFromDataset(pcg["StartFrame"],    *self._offsets)
+        widthInFrames_ = arrayFromDataset(pcg["WidthInFrames"], *self._offsets)
         endFrame_ = startFrame_ + widthInFrames_
         # find interval
         beginPulse = bisect_left(startFrame_, beginFrame)
@@ -62,13 +62,13 @@ class ZmwPulses(object):
 
     __slots__ = [ "plxZmw", "holeNumber",
                   "pulseStart", "pulseEnd",
-                  "plxOffsetBegin", "plxOffsetEnd",
+                  "offsetBegin", "offsetEnd",
                   "baxPeer", "baseStart", "baseEnd"  ]
 
     def __init__(self, plxZmw, holeNumber, pulseStart=None, pulseEnd=None):
         self.plxZmw      = plxZmw
         self.holeNumber  = holeNumber
-        zmwOffsetBegin, zmwOffsetEnd = self._getPlxOffsets()[self.holeNumber]
+        zmwOffsetBegin, zmwOffsetEnd = self.plxZmw._offsets
         if (pulseStart is not None) and (pulseEnd is not None):
             self.pulseStart  = pulseStart
             self.pulseEnd    = pulseEnd
@@ -76,11 +76,11 @@ class ZmwPulses(object):
             self.pulseStart  = 0
             self.pulseEnd    = zmwOffsetEnd - zmwOffsetBegin
         # Find pulse offsets
-        self.plxOffsetBegin = zmwOffsetBegin + self.pulseStart
-        self.plxOffsetEnd   = zmwOffsetBegin + self.pulseEnd
+        self.offsetBegin = zmwOffsetBegin + self.pulseStart
+        self.offsetEnd   = zmwOffsetBegin + self.pulseEnd
         if not (zmwOffsetBegin      <=
-                self.plxOffsetBegin <=
-                self.plxOffsetEnd   <=
+                self.offsetBegin <=
+                self.offsetEnd   <=
                 zmwOffsetEnd):
             raise IndexError, "Invalid slice of PlxZmw!"
         # If we have basecall info, find base interval
@@ -92,28 +92,27 @@ class ZmwPulses(object):
     def _pulsecallsGroup(self):
         return self.plxZmw.plxH5._pulsecallsGroup
 
-    def _getPlxOffsets(self):
-        return self.plxZmw.plxH5._plxOffsetsByHole
+    @property
+    def offsets(self):
+        return (self.offsetBegin, self.offsetEnd)
 
     @property
     def baseMap(self):
         return self.plxZmw.baseMap
 
     def channel(self):
-        return arrayFromDataset(self._pulsecallsGroup["Channel"],
-                                self.plxOffsetBegin, self.plxOffsetEnd)
+        return arrayFromDataset(self._pulsecallsGroup["Channel"], *self.offsets)
+
     def channelBases(self):
         CHANNEL_BASES = np.fromstring(self.baseMap, dtype=np.uint8)
         return CHANNEL_BASES[self.channel()].tostring()
 
 
     def startFrame(self):
-        return arrayFromDataset(self._pulsecallsGroup["StartFrame"],
-                                self.plxOffsetBegin, self.plxOffsetEnd)
+        return arrayFromDataset(self._pulsecallsGroup["StartFrame"], *self.offsets)
 
     def widthInFrames(self):
-        return arrayFromDataset(self._pulsecallsGroup["WidthInFrames"],
-                                self.plxOffsetBegin, self.plxOffsetEnd)
+        return arrayFromDataset(self._pulsecallsGroup["WidthInFrames"], *self.offsets)
 
     def endFrame(self):
         return self.startFrame() + self.widthInFrames()
@@ -122,31 +121,27 @@ class ZmwPulses(object):
     def prePulseFrames(self):
         # This is a bit tricky.  Basically we want startFrame - lag(endFrame)
         # sfp = startframeprevious, etc.
-        if self.plxOffsetBegin == 0:
+        if self.offsetBegin == 0:
             efp = np.hstack([[0], self.endFrame()[:-1]])
         else:
             sfp = arrayFromDataset(self._pulsecallsGroup["StartFrame"],
-                                   self.plxOffsetBegin - 1, self.plxOffsetEnd - 1)
+                                   self.offsetBegin - 1, self.offsetEnd - 1)
             wfp = arrayFromDataset(self._pulsecallsGroup["WidthInFrames"],
-                                   self.plxOffsetBegin - 1, self.plxOffsetEnd - 1)
+                                   self.offsetBegin - 1, self.offsetEnd - 1)
             efp = sfp + wfp
         return self.startFrame() - efp
 
     def midSignal(self):
-        return arrayFromDataset(self._pulsecallsGroup["MidSignal"],
-                                self.plxOffsetBegin, self.plxOffsetEnd)
+        return arrayFromDataset(self._pulsecallsGroup["MidSignal"], *self.offsets)
 
     def meanSignal(self):
-        return arrayFromDataset(self._pulsecallsGroup["MeanSignal"],
-                                self.plxOffsetBegin, self.plxOffsetEnd)
+        return arrayFromDataset(self._pulsecallsGroup["MeanSignal"], *self.offsets)
 
     def maxSignal(self):
-        return arrayFromDataset(self._pulsecallsGroup["MaxSignal"],
-                                self.plxOffsetBegin, self.plxOffsetEnd)
+        return arrayFromDataset(self._pulsecallsGroup["MaxSignal"], *self.offsets)
 
     def isCrfPulse(self):
-        return arrayFromDataset(self._pulsecallsGroup["IsPulse"],
-                                self.plxOffsetBegin, self.plxOffsetEnd)
+        return arrayFromDataset(self._pulsecallsGroup["IsPulse"], *self.offsets)
 
     def isBase(self):
         """
@@ -164,6 +159,8 @@ class ZmwPulses(object):
     def __len__(self):
         return self.pulseEnd - self.pulseStart
 
+
+
 class PlxH5Reader(object):
 
     def __init__(self, filename, bax=None):
@@ -174,8 +171,8 @@ class PlxH5Reader(object):
         self._pulsecallsZmwGroup = self.file["/PulseData/PulseCalls/ZMW"]
         self._pulsecallsZmwMetrics = self.file["/PulseData/PulseCalls/ZMWMetrics"]
         holeNumbers = self._pulsecallsGroup["ZMW/HoleNumber"][:]
-        self._plxHoleNumberToIndex = dict(zip(holeNumbers, range(len(holeNumbers))))
-        self._plxOffsetsByHole = _makeOffsetsDataStructure(self._pulsecallsGroup)
+        self._holeNumberToIndex = dict(zip(holeNumbers, range(len(holeNumbers))))
+        self._offsetsByHole = _makeOffsetsDataStructure(self._pulsecallsGroup)
         if bax is None:
             self.baxPeer = None
         elif isinstance(bax, str):
