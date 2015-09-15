@@ -1,8 +1,5 @@
-
-
-
 from pbcore.io import ReaderBase, readFofn
-import h5py, os.path as op
+import h5py, os.path as op, numpy as np
 
 class MultipartReader(object):
     """
