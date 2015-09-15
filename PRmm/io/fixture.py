@@ -45,24 +45,34 @@ class ReadersFixture(object):
         self.trcFname = trcFname
         if self.trcFname is not None:
             self.trcF = TrcH5Reader(self.trcFname)
-
-        self.plsFname = plsFname
-        if self.plsFname is not None:
-            self.plsF = PlsH5Reader(self.plsFname)
+        else:
+            self.trcF = None
 
         self.basFname = basFname
         if self.basFname is not None:
             self.basF = BasH5Reader(self.basFname)
+        else:
+            self.basF = None
+
+        self.plsFname = plsFname
+        if self.plsFname is not None:
+            self.plsF = PlsH5Reader(self.plsFname, self.basF)
+        else:
+            self.plsF = None
 
         self.alnFname = alnFname
         if self.alnFname is not None:
             self.alnF = CmpH5Reader(self.alnFname)
             if len(self.alnF.movieNames) > 1:
                 raise ValueError, "No support for multi-movie jobs yet"
+        else:
+            self.alnF = None
 
         self.referenceFname = referenceFname
         if self.referenceFname is not None:
             self.refF = IndexedFastaReader(self.referenceFname)
+        else:
+            self.refF = None
 
     @staticmethod
     def fromSecondaryJobPath(jobPath):
