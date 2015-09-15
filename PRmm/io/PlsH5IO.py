@@ -141,6 +141,9 @@ class ZmwPulses(object):
     def maxSignal(self):
         return arrayFromDataset(self._pulsecallsGroup["MaxSignal"], *self.offsets)
 
+    def labelQV(self):
+        return arrayFromDataset(self._pulsecallsGroup["LabelQV"], *self.offsets)
+
     def isCrfPulse(self):
         return arrayFromDataset(self._pulsecallsGroup["IsPulse"], *self.offsets)
 
