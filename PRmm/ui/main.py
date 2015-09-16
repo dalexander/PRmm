@@ -12,7 +12,7 @@ import pyqtgraph as pg
 from docopt import docopt
 from pyqtgraph.Qt import QtCore, QtGui
 
-from pbcore.io import BasH5Reader
+from pbcore.io import BasH5Reader, CmpH5Reader
 
 from PRmm.io import TrcH5Reader, PlsH5Reader, BasecallsUnavailable
 from PRmm.ui.overlays import *
@@ -103,8 +103,15 @@ class TraceViewer(QtGui.QMainWindow):
         if plsZmw is not None:
             self.renderPulses(plsZmw)
 
+        print self.aln
+        if self.aln is not None:
+            alns = self.aln.readsByHoleNumber(holeNumber)
+            print alns
+        else:
+            alns = []
+
         if self.basZmw is not None:
-            regions = Region.regionsFromBasZmw(self.basZmw)
+            regions = Region.fetchRegions(self.basZmw, alns)
             self.renderRegions(regions)
 
     def keyPressEvent(self, e):
@@ -146,13 +153,13 @@ def main():
         pls = None
 
     if args["--aln"] is not None:
-        aln = (args["--aln"])
+        aln = CmpH5Reader(args["--aln"])
     else:
         aln = None
     # --
 
     app = QtGui.QApplication([])
-    traceViewer = TraceViewer(trc, pls, bas)
+    traceViewer = TraceViewer(trc, pls, bas, aln)
     traceViewer.setFocus(holeNumber)
 
     if args["--debug"]:
