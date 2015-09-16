@@ -103,10 +103,8 @@ class TraceViewer(QtGui.QMainWindow):
         if plsZmw is not None:
             self.renderPulses(plsZmw)
 
-        print self.aln
         if self.aln is not None:
             alns = self.aln.readsByHoleNumber(holeNumber)
-            print alns
         else:
             alns = []
 

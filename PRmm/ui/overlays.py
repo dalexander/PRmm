@@ -8,6 +8,8 @@ from PRmm.io import BasecallsUnavailable
 class Region(object):
     """
     A region, in *frame* coordinates
+
+    TODO: move this logic under fixture!
     """
     # These agree with regions enum defined for bas/bax files
     ADAPTER_REGION = 0
@@ -24,26 +26,36 @@ class Region(object):
         self.name       = name
 
     @staticmethod
-    def regionsFromBasZmw(basZmw):
-        basRead = basZmw.readNoQC()
-        endFrames = np.cumsum(basRead.PreBaseFrames() + basRead.WidthInFrames())
-        startFrames = endFrames - basRead.PreBaseFrames()
-        for basRegion in basZmw.regionTable:
-            startFrame = startFrames[basRegion.regionStart]
-            endFrame = endFrames[basRegion.regionEnd-1] # TODO: check this logic
-            yield Region(basRegion.regionType, startFrame, endFrame, "")
-
-
+    def fetchRegions(basZmw, alns=[]):
+        if basZmw is not None:
+            basRead = basZmw.readNoQC()
+            endFrames = np.cumsum(basRead.PreBaseFrames() + basRead.WidthInFrames())
+            startFrames = endFrames - basRead.PreBaseFrames()
+            for basRegion in basZmw.regionTable:
+                startFrame = startFrames[basRegion.regionStart]
+                endFrame = endFrames[basRegion.regionEnd-1] # TODO: check this logic
+                yield Region(basRegion.regionType, startFrame, endFrame, "")
+            # Are there alignments?
+            if alns:
+                for aln in alns:
+                    yield Region(Region.ALIGNMENT_REGION,
+                                 startFrames[aln.rStart],
+                                 endFrames[aln.rEnd-1], "")
 
 
 class RegionsOverlayItem(pg.GraphicsObject):
     """
     Region display
     """
-    pens = { Region.ADAPTER_REGION   : pg.mkPen(pg.mkColor(0,0,100), width=2),
-             Region.INSERT_REGION    : pg.mkPen(pg.mkColor(0,100,0), width=2),
-             Region.HQ_REGION        : pg.mkPen(pg.mkColor(100,0,0), width=2),
-             Region.ALIGNMENT_REGION : pg.mkPen(pg.mkColor(100,100,0), width=2)  }
+    pens =    { Region.ADAPTER_REGION   : pg.mkPen(pg.mkColor(255,255,255), width=2),
+                Region.INSERT_REGION    : pg.mkPen(pg.mkColor(  0,100,  0), width=2),
+                Region.HQ_REGION        : pg.mkPen(pg.mkColor(100,  0,  0), width=2),
+                Region.ALIGNMENT_REGION : pg.mkPen(pg.mkColor(100,100,  0), width=2)  }
+
+    heights = { Region.ADAPTER_REGION   : 0.97,
+                Region.INSERT_REGION    : 0.97,
+                Region.HQ_REGION        : 0.98,
+                Region.ALIGNMENT_REGION : 1.00 }
 
     def __init__(self, regions, plot):
         pg.GraphicsObject.__init__(self)
@@ -51,27 +63,24 @@ class RegionsOverlayItem(pg.GraphicsObject):
         self.regions = regions
         self.generatePicture()
 
-    @property
-    def regionOverlayY(self):
+    def regionOverlayY(self, regionType):
+        f = self.heights[regionType]
         a, b = self.plot.visibleSpanY
-        return a + (b - a) * 0.97
-
-    @property
-    def hqRegionOverlayY(self):
-        a, b = self.plot.visibleSpanY
-        return a + (b - a) * 1.00
+        return a + (b - a) * f
 
     def generatePicture(self):
         self.picture = QtGui.QPicture()
         p = QtGui.QPainter(self.picture)
+
+        # Make this a checkbox in GUI
+        regionTypesOfInterest = ( Region.ALIGNMENT_REGION, Region.ADAPTER_REGION )
+
         for region in self.regions:
-            p.setPen(self.pens[region.regionType])
-            if region.regionType == Region.HQ_REGION:
-                y = self.hqRegionOverlayY
-            else:
-                y = self.regionOverlayY
-            p.drawLine(QtCore.QPointF(region.startFrame, y),
-                       QtCore.QPointF(region.endFrame, y))
+            if region.regionType in regionTypesOfInterest:
+                p.setPen(self.pens[region.regionType])
+                y = self.regionOverlayY(region.regionType)
+                p.drawLine(QtCore.QPointF(region.startFrame, y),
+                           QtCore.QPointF(region.endFrame, y))
 
     def paint(self, p, *args):
         p.drawPicture(0, 0, self.picture)
