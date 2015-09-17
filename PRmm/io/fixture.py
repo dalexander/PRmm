@@ -3,7 +3,7 @@ from PRmm.io import *
 from pbcore.io import *
 
 from docopt import docopt
-import tempfile, os.path as op
+import tempfile, os, os.path as op
 from glob import glob
 
 def find(pattern, path):
@@ -21,9 +21,8 @@ def findOneOrNone(pattern, path):
     elif len(result) > 1: raise IOError, "More than one file found matching pattern %s" % pattern
     else: return result[0]
 
-
-updir = op.dirname
-
+def updir(path):
+    return op.abspath(op.join(path, os.pardir))
 
 __all__ = [ "ReadersFixture" ]
 
@@ -86,13 +85,13 @@ class ReadersFixture(object):
 
     @staticmethod
     def fromPaths(reportsPath, secondaryJobPath=None):
-        if secondaryJobPath:
-            alnFname = findOneOrNone("*.cmp.h5", secondaryJobPath)
-        else:
-            alnFname = None
         basFname = findOneOrNone("*.bas.h5", reportsPath)
         plsFname = findOneOrNone("*.pls.h5", reportsPath)
         trcFname = findOneOrNone("*.trc.h5", updir(reportsPath))
+        if secondaryJobPath:
+            alnFname = findOneOrNone("*.cmp.h5", op.join(secondaryJobPath, "data"))
+        else:
+            alnFname = None
         return ReadersFixture(trcFname=trcFname, plsFname=plsFname,
                               basFname=basFname, alnFname=alnFname)
 
@@ -104,16 +103,15 @@ class ReadersFixture(object):
         for fname in trcFnames:
             trcFofn.file.write(fname)
             trcFofn.file.write("\n")
+        trcFofn.close()
         basFname = findOneOrNone("*.bas.h5", reportsPath)
         plsFname = findOneOrNone("*.pls.h5", reportsPath)
         if secondaryJobPath:
-            alnFname = findOneOrNone("*.cmp.h5", secondaryJobPath)
+            alnFname = findOneOrNone("*.cmp.h5", op.join(secondaryJobPath, "data"))
         else:
             alnFname = None
         return ReadersFixture(trcFname=trcFofn.name, plsFname=plsFname,
                               basFname=basFname, alnFname=alnFname)
-
-
 
     def __repr__(self):
         fnameFields = [ fn for fn in dir(self) if fn.endswith("Fname") ]
