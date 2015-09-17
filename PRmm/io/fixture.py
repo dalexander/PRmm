@@ -85,8 +85,11 @@ class ReadersFixture(object):
             return ReadersFixture.fromPaths(reportsPath, jobPath)
 
     @staticmethod
-    def fromPaths(reportsPath, secondaryJobPath):
-        alnFname = findOneOrNone("*.cmp.h5", secondaryJobPath)
+    def fromPaths(reportsPath, secondaryJobPath=None):
+        if secondaryJobPath:
+            alnFname = findOneOrNone("*.cmp.h5", secondaryJobPath)
+        else:
+            alnFname = None
         basFname = findOneOrNone("*.bas.h5", reportsPath)
         plsFname = findOneOrNone("*.pls.h5", reportsPath)
         trcFname = findOneOrNone("*.trc.h5", updir(reportsPath))
