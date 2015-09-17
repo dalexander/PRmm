@@ -136,7 +136,7 @@ class ZmwPulses(object):
         return arrayFromDataset(self._pulsecallsGroup["MidSignal"], *self.offsets)
 
     def meanSignal(self):
-        return arrayFromDataset(self._pulsecallsGroup["MeanSignal"], *self.offsets)
+        return self._pulsecallsGroup["MeanSignal"][self.offsets[0]:self.offsets[1],:]
 
     def maxSignal(self):
         return arrayFromDataset(self._pulsecallsGroup["MaxSignal"], *self.offsets)
