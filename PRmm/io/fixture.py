@@ -3,7 +3,7 @@ from PRmm.io import *
 from pbcore.io import *
 
 from docopt import docopt
-import os.path as op
+import tempfile, os.path as op
 from glob import glob
 
 def find(pattern, path):
@@ -95,6 +95,25 @@ class ReadersFixture(object):
         trcFname = findOneOrNone("*.trc.h5", updir(reportsPath))
         return ReadersFixture(trcFname=trcFname, plsFname=plsFname,
                               basFname=basFname, alnFname=alnFname)
+
+    @staticmethod
+    def fromTraceSplitPaths(reportsPath, secondaryJobPath=None):
+        # ARGGH!
+        trcFnames = find("*split*.trc.h5", op.join(updir(reportsPath), "traceSplit"))
+        trcFofn = tempfile.NamedTemporaryFile(suffix=".trc.fofn", delete=False)
+        for fname in trcFnames:
+            trcFofn.file.write(fname)
+            trcFofn.file.write("\n")
+        basFname = findOneOrNone("*.bas.h5", reportsPath)
+        plsFname = findOneOrNone("*.pls.h5", reportsPath)
+        if secondaryJobPath:
+            alnFname = findOneOrNone("*.cmp.h5", secondaryJobPath)
+        else:
+            alnFname = None
+        return ReadersFixture(trcFname=trcFofn.name, plsFname=plsFname,
+                              basFname=basFname, alnFname=alnFname)
+
+
 
     def __repr__(self):
         fnameFields = [ fn for fn in dir(self) if fn.endswith("Fname") ]
