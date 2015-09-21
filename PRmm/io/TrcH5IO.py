@@ -127,4 +127,4 @@ class TrcH5Reader(MultipartReader):
 
     @property
     def holeNumbers(self):
-        return np.hstack(part.holeNumbers for part in self._parts)
+        return np.sort(np.hstack(part.holeNumbers for part in self._parts))

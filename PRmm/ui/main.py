@@ -73,9 +73,11 @@ class TraceViewer(QtGui.QMainWindow):
         return self.movieName + "/" + str(self.holeNumber)
 
     def setFocus(self, holeNumber, frameBegin=None, frameEnd=None):
-        self.holeNumber = holeNumber
+        # remove any items previously added to the plots (plot itself;
+        # overlays, etc):
+        self.plot1.clear()
 
-        # TODO later: enable reusing data already loaded!
+        self.holeNumber = holeNumber
         traceData = self.trc[holeNumber]
         traceFrameExtent = (0, traceData.shape[1])
 
@@ -112,6 +114,28 @@ class TraceViewer(QtGui.QMainWindow):
             regions = Region.fetchRegions(self.basZmw, alns)
             self.renderRegions(regions)
 
+
+    @property
+    def holeNumbersOfInterest(self):
+        # TODO: cache this!
+        return self.trc.holeNumbers
+
+    def nextHoleNumber(self, hns, curHn):
+        iNext = hns.searchsorted(curHn, side="right")
+        print curHn, iNext, hns[iNext]
+        if iNext == len(hns):
+            print "No next holenumber"
+            return None
+        else: return hns[iNext]
+
+    def prevHoleNumber(self, hns, curHn):
+        iPrev = hns.searchsorted(curHn, side="left") - 1
+        print curHn, iPrev, hns[iPrev]
+        if iPrev == -1:
+            print "No previous holenumber"
+            return None
+        else: return hns[iPrev]
+
     def keyPressEvent(self, e):
         # GOAL:
         # * L/R: scroll
@@ -119,13 +143,20 @@ class TraceViewer(QtGui.QMainWindow):
         # * [/]: go back and forth in history
         print "Key pressed!"
 
-        if e.key() == QtCore.Qt.Key_Left:
+        key = e.key()
+
+        if key == QtCore.Qt.Key_N:
+            self.setFocus(self.nextHoleNumber(self.holeNumbersOfInterest, self.holeNumber))
+        elif key == QtCore.Qt.Key_P:
+            self.setFocus(self.prevHoleNumber(self.holeNumbersOfInterest, self.holeNumber))
+
+        elif key == QtCore.Qt.Key_Left:
             print "Left!"
 
-        elif e.key() == QtCore.Qt.Key_Right:
+        elif key == QtCore.Qt.Key_Right:
             print "Right!"
 
-        elif e.key() == QtCore.Qt.Key_Escape:
+        elif key == QtCore.Qt.Key_Escape:
             self.close()
 
     # mouse event?
