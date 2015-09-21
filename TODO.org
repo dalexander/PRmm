@@ -1,18 +1,19 @@
 
 * Pulse display
-  - [ ] Get the letters displaying
+  - [X] Get the letters displaying
   - [ ] Tooltip (so I can inspect LabelQV)
 
 * Input
-  - [ ] Bas input
-  - [ ] Aln input
+  - [X] Bas input
+  - [X] Aln input
+  - [X] Multipart
   - [ ] DWIM mode
-  - [ ] Multipart
+  - [ ] input "interest list"
 
 * Regions
-  - [ ] HQ region
-  - [ ] Adapters
-  - [ ] Alignments
+  - [X] HQ region
+  - [X] Adapters
+  - [X] Alignments
   - [ ] Overlay text label on alignment (accuracy)
 
 * Alignment display
@@ -28,10 +29,10 @@
   - [ ] 2C2A cluster plot
 
 * Maneuvering
+  - [ ] n/p for next/prev ZMW within interest list
   - [ ] Arrow keys to scroll
   - [ ] Key to zoom
   - [ ] Key to navigate history
   - [ ] Inertial scrolling
-  - [ ] n/p for next/prev ZMW within interest list
 
 
