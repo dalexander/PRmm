@@ -1,7 +1,7 @@
 import sys, numpy as np, pyqtgraph as pg
 from bisect import bisect_right, bisect_left
 from pyqtgraph.Qt import QtCore, QtGui
-from pbcore.io import CmpH5Reader
+from pbcore.io import *
 
 borderPen = pg.mkPen((255,255,255), width=1)
 textColor = pg.mkColor(255, 255, 255)
@@ -100,8 +100,43 @@ class AlignmentViewBox(BasicAlignmentViewBox):
                                 **kwargs)
 
     @staticmethod
-    def fromAllAlignmentsInZmw(basZmwRead, alnHits):
-        pass
+    def fromAllAlignmentsInZmw(basZmw, alnHits, **kwargs):
+        sortedHits = sorted(alnHits, key=lambda h: h.aStart)
+        fullRead = basZmw.readNoQC().basecalls()
+
+        iRefs    = []
+        iReads   = []
+        iScripts = []
+        iReadPos = []
+
+        def addAlignedInterval(hit):
+            iRefs    .append(hit.reference (orientation="native", aligned=True))
+            iReads   .append(hit.read      (orientation="native", aligned=True))
+            iScripts .append(hit.transcript(orientation="native", style="exonerate+"))
+            iReadPos .append(hit.readPositions(orientation="native"))
+
+        def addUnalignedInterval(rStart, rEnd):
+            iRefs    .append(" " * (rEnd-rStart))
+            iReads   .append(fullRead[rStart:rEnd])
+            iScripts .append(" " * (rEnd-rStart))
+            iReadPos .append(np.arange(rStart, rEnd, dtype=np.int))
+
+        prevEnd = 0
+        for hit in sortedHits:
+            if hit.aStart > prevEnd:
+                addUnalignedInterval(prevEnd, hit.aStart)
+            addAlignedInterval(hit)
+            prevEnd = hit.aEnd
+        if prevEnd < len(fullRead):
+            addUnalignedInterval(hit.aEnd, len(fullRead))
+
+        reference  = "".join(iRefs)
+        read       = "".join(iReads)
+        transcript = "".join(iScripts)
+        readPos    = np.concatenate(iReadPos)
+
+        return AlignmentViewBox(reference, read, transcript, readPos, **kwargs)
+
 
     def setAlignment(self, alnHit, aStart=None, aEnd=None):
         self.setBasicAlignment(
@@ -120,7 +155,7 @@ class AlignmentViewBox(BasicAlignmentViewBox):
 
 class Main(object):
 
-    def run(self, alnF, rowNumber):
+    def run(self, basF, alnF, holeNumber):
         self.app = QtGui.QApplication([])
         self.win = QtGui.QMainWindow()
         self.win.resize(800, 600)
@@ -148,9 +183,11 @@ class Main(object):
         self.startSpinBox.setRange(0, 1000000)
         self.widthSpinBox.setRange(0, 1000000)
 
-        aln = alnF[rowNumber]
-        self.startSpinBox.setValue(aln.aStart)
-        self.av = AlignmentViewBox.fromSingleAlignment(aln, width=740)
+        alns = alnF.readsByHoleNumber(holeNumber)
+        zmw = basF[holeNumber]
+        #self.av = AlignmentViewBox.fromSingleAlignment(aln, width=740)
+        self.startSpinBox.setValue(0)
+        self.av = AlignmentViewBox.fromAllAlignmentsInZmw(zmw, alns, width=740)
         self.av.setPos(20, 20)
         self.widget1.addItem(self.av)
 
@@ -175,14 +212,16 @@ class Main(object):
         self.av.focus(aStart, aEnd)
 
 
-
-alnFname = sys.argv[1]
-rowNumber = int(sys.argv[2])
+basFname = sys.argv[1]
+alnFname = sys.argv[2]
+holeNumber = int(sys.argv[3])
+basF = BasH5Reader(basFname)
 alnF = CmpH5Reader(alnFname)
-aln = alnF[rowNumber]
+zmw = basF[holeNumber]
+alns = alnF.readsByHoleNumber(holeNumber)
 
 m = Main()
-m.run(alnF, rowNumber)
+m.run(basF, alnF, holeNumber)
 
 import ipdb; ipdb.set_trace()
 
