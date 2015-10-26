@@ -1,4 +1,5 @@
 import sys, numpy as np, pyqtgraph as pg
+from bisect import bisect_right, bisect_left
 from pyqtgraph.Qt import QtCore, QtGui
 from pbcore.io import CmpH5Reader
 
@@ -11,8 +12,15 @@ monospaceFont = QtGui.QFont("Courier", 14)
 fm = QtGui.QFontMetrics(monospaceFont)
 
 
+def debug_trace():
+    # http://stackoverflow.com/questions/1736015/debugging-a-pyqt4-app
+    from ipdb import set_trace
+    QtCore.pyqtRemoveInputHook()
+    set_trace()
+
+
 class BasicAlignmentViewBox(pg.ViewBox):
-    def __init__(self, alnTpl, alnRead, transcript, aStart, width=None):
+    def __init__(self, alnTpl, alnRead, transcript, aPos, width=None):
         # TODO: Why on earth do we need this invertY business here
         pg.ViewBox.__init__(self, invertY=True, border=borderPen, enableMouse=False)
 
@@ -24,7 +32,7 @@ class BasicAlignmentViewBox(pg.ViewBox):
         self.textHeight = 3 * fm.lineSpacing()
         self.tightTextHeight = 2 * fm.lineSpacing() + fm.ascent()
 
-        self.setAlignment(alnTpl, alnRead, transcript, aStart)
+        self.setAlignment(alnTpl, alnRead, transcript, aPos)
 
 
         self.disableAutoRange(pg.ViewBox.XYAxes)
@@ -42,30 +50,38 @@ class BasicAlignmentViewBox(pg.ViewBox):
         self.addItem(self.roiItem)
 
 
-    def setAlignment(self, tpl, read, transcript, aStart):
-        print aStart
+    def setAlignment(self, tpl, read, transcript, aPos):
         self.alnTpl = tpl
         self.alnRead = read
         self.transcript = transcript
-        self.aStart = aStart
+        self.aPos = aPos
         self.text = self.alnTpl + "\n" + self.transcript + "\n" + self.alnRead
         self.ti.setPlainText(self.text)
 
-    def center(self, aMid):
-        xCenter = self.margin + aMid * self.charWidth
+    def charPos(self, aStart, aEnd):
+        # returns cStart, cMid, cEnd---the character offsets into the
+        # alignment corresponding to the given read positioins
+        cStart = bisect_left(self.aPos, aStart)
+        cEnd   = bisect_left(self.aPos, aEnd)
+        cMid   = float(cStart + cEnd) / 2
+        return cStart, cMid, cEnd
+
+    def center(self, cMid):
+        xCenter = self.margin + cMid * self.charWidth
         width = self.width()
         xStart = xCenter - width / 2.0
         xEnd = xCenter + width / 2.0
         self.setXRange(xStart, xEnd, padding=0)
 
-    def highlightRange(self, aStart, aEnd):
-        self.roiItem.setRegion((self.margin + aStart * self.charWidth,
-                                self.margin + aEnd * self.charWidth))
+    def highlightRange(self, cStart, cEnd):
+        self.roiItem.setRegion((self.margin + cStart * self.charWidth,
+                                self.margin + cEnd * self.charWidth))
 
     def focus(self, aStart, aEnd):
-        aMid = float(aStart + aEnd) / 2
-        self.highlightRange(aStart, aEnd)
-        self.center(aMid)
+        #debug_trace()
+        cStart, cMid, cEnd = self.charPos(aStart, aEnd)
+        self.highlightRange(cStart, cEnd)
+        self.center(cMid)
 
 
 class AlignmentViewBox(BasicAlignmentViewBox):
@@ -78,7 +94,7 @@ class AlignmentViewBox(BasicAlignmentViewBox):
         return AlignmentViewBox(alnHit.reference (orientation="native", aligned=True),
                                 alnHit.read      (orientation="native", aligned=True),
                                 alnHit.transcript(orientation="native", style="exonerate+"),
-                                alnHit.aStart,
+                                alnHit.readPositions(orientation="native"),
                                 **kwargs)
 
     @staticmethod
@@ -106,8 +122,6 @@ class Main(object):
         self.widthSpinBox = QtGui.QSpinBox()
         self.groupBoxLayout = QtGui.QVBoxLayout()
 
-        self.startSpinBox.valueChanged.connect(self.update)
-        self.widthSpinBox.valueChanged.connect(self.update)
 
         self.groupBox.setLayout(self.groupBoxLayout)
         self.groupBoxLayout.addWidget(self.startSpinBox)
@@ -121,9 +135,16 @@ class Main(object):
         alnF = CmpH5Reader(alnFname)
         aln = alnF[rowNumber]
 
+        self.startSpinBox.setRange(0, 1000000)
+        self.widthSpinBox.setRange(0, 1000000)
+        self.startSpinBox.setValue(aln.aStart)
+
         self.av = AlignmentViewBox.fromSingleAlignment(aln, width=740)
-        self.av.setPos(20,20)
+        self.av.setPos(20, 20)
         self.widget1.addItem(self.av)
+
+        self.startSpinBox.valueChanged.connect(self.update)
+        self.widthSpinBox.valueChanged.connect(self.update)
 
         self.update(None)
         self.win.show()
@@ -136,6 +157,9 @@ class Main(object):
 
 m = Main()
 m.run()
+sys.exit(m.app.exec_())
 
-import ipdb
-ipdb.set_trace()
+
+
+
+#import ipdb; ipdb.set_trace()
