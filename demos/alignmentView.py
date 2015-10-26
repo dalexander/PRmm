@@ -32,7 +32,7 @@ class BasicAlignmentViewBox(pg.ViewBox):
         self.textHeight = 3 * fm.lineSpacing()
         self.tightTextHeight = 2 * fm.lineSpacing() + fm.ascent()
 
-        self.setAlignment(alnTpl, alnRead, transcript, aPos)
+        self.setBasicAlignment(alnTpl, alnRead, transcript, aPos)
 
 
         self.disableAutoRange(pg.ViewBox.XYAxes)
@@ -50,7 +50,7 @@ class BasicAlignmentViewBox(pg.ViewBox):
         self.addItem(self.roiItem)
 
 
-    def setAlignment(self, tpl, read, transcript, aPos):
+    def setBasicAlignment(self, tpl, read, transcript, aPos):
         self.alnTpl = tpl
         self.alnRead = read
         self.transcript = transcript
@@ -79,6 +79,8 @@ class BasicAlignmentViewBox(pg.ViewBox):
 
     def focus(self, aStart, aEnd):
         #debug_trace()
+        self.aStart = aStart
+        self.aEnd = aEnd
         cStart, cMid, cEnd = self.charPos(aStart, aEnd)
         self.highlightRange(cStart, cEnd)
         self.center(cMid)
@@ -101,11 +103,24 @@ class AlignmentViewBox(BasicAlignmentViewBox):
     def fromAllAlignmentsInZmw(basZmwRead, alnHits):
         pass
 
+    def setAlignment(self, alnHit, aStart=None, aEnd=None):
+        self.setBasicAlignment(
+            alnHit.reference (orientation="native", aligned=True),
+            alnHit.read      (orientation="native", aligned=True),
+            alnHit.transcript(orientation="native", style="exonerate+"),
+            alnHit.readPositions(orientation="native"))
+        if aStart is None:
+            aStart = alnHit.aStart
+            aEnd = aStart
+        self.focus(aStart, aEnd)
+
+    def setAlignments(self, alnHits):
+        pass
 
 
 class Main(object):
 
-    def run(self):
+    def run(self, alnF, rowNumber):
         self.app = QtGui.QApplication([])
         self.win = QtGui.QMainWindow()
         self.win.resize(800, 600)
@@ -130,15 +145,11 @@ class Main(object):
         l.addWidget(self.widget1)
         l.addWidget(self.groupBox)
 
-        alnFname = sys.argv[1]
-        rowNumber = int(sys.argv[2])
-        alnF = CmpH5Reader(alnFname)
-        aln = alnF[rowNumber]
-
         self.startSpinBox.setRange(0, 1000000)
         self.widthSpinBox.setRange(0, 1000000)
-        self.startSpinBox.setValue(aln.aStart)
 
+        aln = alnF[rowNumber]
+        self.startSpinBox.setValue(aln.aStart)
         self.av = AlignmentViewBox.fromSingleAlignment(aln, width=740)
         self.av.setPos(20, 20)
         self.widget1.addItem(self.av)
@@ -149,17 +160,34 @@ class Main(object):
         self.update(None)
         self.win.show()
 
+    def setAlignment(self, alnHit, aStart=None, aEnd=None):
+        debug_trace()
+        self.av.setAlignment(alnHit, aStart, aEnd)
+        aStart = self.av.aStart
+        aEnd = self.av.aEnd
+        self.startSpinBox.setValue(aStart)
+        self.widthSpinBox.setValue(aEnd - aStart)
+
     def update(self, arg):
         # ignore arg
         aStart = self.startSpinBox.value()
         aEnd = aStart + self.widthSpinBox.value()
         self.av.focus(aStart, aEnd)
 
+
+
+alnFname = sys.argv[1]
+rowNumber = int(sys.argv[2])
+alnF = CmpH5Reader(alnFname)
+aln = alnF[rowNumber]
+
 m = Main()
-m.run()
+m.run(alnF, rowNumber)
+
+import ipdb; ipdb.set_trace()
+
+# m.widthSpinBox.setValue(2)
+
+# m.setAlignment(alnF[5])
+
 sys.exit(m.app.exec_())
-
-
-
-
-#import ipdb; ipdb.set_trace()
