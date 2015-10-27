@@ -92,15 +92,33 @@ class AlignmentViewBox(BasicAlignmentViewBox):
     the data from cmp.h5/BAM records
     """
     @staticmethod
+    def _uninitialized(**kwargs):
+        return AlignmentViewBox("", "", "", None, **kwargs)
+
+    @staticmethod
     def fromSingleAlignment(alnHit, **kwargs):
-        return AlignmentViewBox(alnHit.reference (orientation="native", aligned=True),
-                                alnHit.read      (orientation="native", aligned=True),
-                                alnHit.transcript(orientation="native", style="exonerate+"),
-                                alnHit.readPositions(orientation="native"),
-                                **kwargs)
+        s = AlignmentViewBox._uninitialized(**kwargs)
+        s.setAlignment(alnHit)
+        return s
 
     @staticmethod
     def fromAllAlignmentsInZmw(basZmw, alnHits, **kwargs):
+        s = AlignmentViewBox._uninitialized(**kwargs)
+        s.setAlignments(basZmw, alnHits)
+        return s
+
+    def setAlignment(self, alnHit, aStart=None, aEnd=None):
+        self.setBasicAlignment(
+            alnHit.reference (orientation="native", aligned=True),
+            alnHit.read      (orientation="native", aligned=True),
+            alnHit.transcript(orientation="native", style="exonerate+"),
+            alnHit.readPositions(orientation="native"))
+        if aStart is None:
+            aStart = alnHit.aStart
+            aEnd = aStart
+        self.focus(aStart, aEnd)
+
+    def setAlignments(self, basZmw, alnHits, aStart=None, aEnd=None):
         sortedHits = sorted(alnHits, key=lambda h: h.aStart)
         fullRead = basZmw.readNoQC().basecalls()
 
@@ -130,28 +148,11 @@ class AlignmentViewBox(BasicAlignmentViewBox):
         if prevEnd < len(fullRead):
             addUnalignedInterval(hit.aEnd, len(fullRead))
 
-        reference  = "".join(iRefs)
-        read       = "".join(iReads)
-        transcript = "".join(iScripts)
-        readPos    = np.concatenate(iReadPos)
-
-        return AlignmentViewBox(reference, read, transcript, readPos, **kwargs)
-
-
-    def setAlignment(self, alnHit, aStart=None, aEnd=None):
         self.setBasicAlignment(
-            alnHit.reference (orientation="native", aligned=True),
-            alnHit.read      (orientation="native", aligned=True),
-            alnHit.transcript(orientation="native", style="exonerate+"),
-            alnHit.readPositions(orientation="native"))
-        if aStart is None:
-            aStart = alnHit.aStart
-            aEnd = aStart
-        self.focus(aStart, aEnd)
-
-    def setAlignments(self, alnHits):
-        pass
-
+            "".join(iRefs),
+            "".join(iReads),
+            "".join(iScripts),
+            np.concatenate(iReadPos))
 
 class Main(object):
 
@@ -198,7 +199,6 @@ class Main(object):
         self.win.show()
 
     def setAlignment(self, alnHit, aStart=None, aEnd=None):
-        debug_trace()
         self.av.setAlignment(alnHit, aStart, aEnd)
         aStart = self.av.aStart
         aEnd = self.av.aEnd
