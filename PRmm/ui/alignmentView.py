@@ -1,3 +1,5 @@
+__all__ = [ "AlignmentViewBox" ]
+
 import sys, numpy as np, pyqtgraph as pg
 from bisect import bisect_right, bisect_left
 from pyqtgraph.Qt import QtCore, QtGui
@@ -212,21 +214,23 @@ class Main(object):
         self.av.focus(aStart, aEnd)
 
 
-basFname = sys.argv[1]
-alnFname = sys.argv[2]
-holeNumber = int(sys.argv[3])
-basF = BasH5Reader(basFname)
-alnF = CmpH5Reader(alnFname)
-zmw = basF[holeNumber]
-alns = alnF.readsByHoleNumber(holeNumber)
 
-m = Main()
-m.run(basF, alnF, holeNumber)
+if __name__ == "__main__":
+    basFname = sys.argv[1]
+    alnFname = sys.argv[2]
+    holeNumber = int(sys.argv[3])
+    basF = BasH5Reader(basFname)
+    alnF = CmpH5Reader(alnFname)
+    zmw = basF[holeNumber]
+    alns = alnF.readsByHoleNumber(holeNumber)
 
-import ipdb; ipdb.set_trace()
+    m = Main()
+    m.run(basF, alnF, holeNumber)
 
-# m.widthSpinBox.setValue(2)
+    import ipdb; ipdb.set_trace()
 
-# m.setAlignment(alnF[5])
+    # m.widthSpinBox.setValue(2)
 
-sys.exit(m.app.exec_())
+    # m.setAlignment(alnF[5])
+
+    sys.exit(m.app.exec_())
