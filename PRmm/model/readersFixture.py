@@ -1,28 +1,9 @@
-
 from PRmm.io import *
 from pbcore.io import *
 
 from docopt import docopt
 import tempfile, os, os.path as op
-from glob import glob
-
-def find(pattern, path):
-    return glob(op.join(path, pattern))
-
-def findOne(pattern, path):
-    result = find(pattern, path)
-    if len(result) < 1:   raise IOError, "No file found matching pattern %s" % pattern
-    elif len(result) > 1: raise IOError, "More than one file found matching pattern %s" % pattern
-    else: return result[0]
-
-def findOneOrNone(pattern, path):
-    result = find(pattern, path)
-    if len(result) < 1:   return None
-    elif len(result) > 1: raise IOError, "More than one file found matching pattern %s" % pattern
-    else: return result[0]
-
-def updir(path):
-    return op.abspath(op.join(path, os.pardir))
+from ._utils import *
 
 __all__ = [ "ReadersFixture" ]
 
@@ -113,11 +94,32 @@ class ReadersFixture(object):
         return ReadersFixture(trcFname=trcFofn.name, plsFname=plsFname,
                               basFname=basFname, alnFname=alnFname)
 
+    @staticmethod
+    def fromIniFile(iniFilename, entryName):
+        pass
+
     def __repr__(self):
         fnameFields = [ fn for fn in dir(self) if fn.endswith("Fname") ]
         fnames = ", ".join(["%s=%s" % (fieldName, getattr(self, fieldName))
                             for fieldName in fnameFields])
         return "<ReadersFixture { %s }>" % fnames
+
+
+    def hasTraces(self):
+        pass
+
+    def hasPulses(self):
+        pass
+
+    def hasBases(self):
+        pass
+
+    def hasAlignments(self):
+        pass
+
+    def __getitem__(self, holenumber):
+        pass
+
 
 
 __doc__ = \
