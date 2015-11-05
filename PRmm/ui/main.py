@@ -8,6 +8,7 @@ Usage: traceViewer1.py [--debug]
                        TRXFILE
 """
 import numpy as np
+from bisect import bisect_left, bisect_right
 import pyqtgraph as pg
 from docopt import docopt
 from pyqtgraph.Qt import QtCore, QtGui
@@ -17,7 +18,7 @@ from pbcore.io import BasH5Reader, CmpH5Reader
 from PRmm.io import TrcH5Reader, PlsH5Reader, BasecallsUnavailable
 from PRmm.ui.overlays import *
 from PRmm.ui.tracePlot import *
-
+from PRmm.ui.alignmentView import *
 
 def debug_trace():
     # http://stackoverflow.com/questions/1736015/debugging-a-pyqt4-app
@@ -46,12 +47,28 @@ class TraceViewer(QtGui.QMainWindow):
         self.setWindowTitle("PRmm Trace Viewer")
         self.glw = pg.GraphicsLayoutWidget()
         self.setCentralWidget(self.glw)
+
         self.plot1 = TracePlotItem()
         self.glw.addItem(self.plot1)
-        self.glw.nextRow()
-        self.plot2 = TracePlotItem()
-        self.glw.addItem(self.plot2)
+
+        if self.aln is not None:
+            self.glw.nextRow()
+            self.alnView = AlignmentViewBox._uninitialized()
+            self.glw.addItem(self.alnView)
+        else:
+            self.alnView = None
+
+        if self.alnView is not None:
+            # Only so this if we are showing base labels
+            def dummy(x):
+                print "The x-axis was changed!"
+                print self.frameInterval
+                print self.baseInterval
+                self.alnView.focus(*self.baseInterval)
+            self.plot1.sigXRangeChanged.connect(dummy)
+
         self.show()
+
 
     def renderTrace(self, traceData):
         numChannels = traceData.shape[0]
@@ -72,6 +89,19 @@ class TraceViewer(QtGui.QMainWindow):
     def zmwName(self):
         return self.movieName + "/" + str(self.holeNumber)
 
+    @property
+    def frameInterval(self):
+        return tuple(self.plot1.visibleSpanX)
+
+    @property
+    def baseInterval(self):
+        if self.basZmw is None:
+            raise Exception, "Base interval unavailable"
+        else:
+            frameStart, frameEnd = self.frameInterval
+            return (bisect_left(self.basEndFrame, frameStart),
+                    bisect_right(self.basStartFrame, frameEnd))
+
     def setFocus(self, holeNumber, frameBegin=None, frameEnd=None):
         # remove any items previously added to the plots (plot itself;
         # overlays, etc):
@@ -88,6 +118,8 @@ class TraceViewer(QtGui.QMainWindow):
 
         if self.bas is not None:
             self.basZmw = self.bas[holeNumber]
+            self.basStartFrame = self.basZmw.readNoQC().StartFrame()
+            self.basEndFrame = self.basZmw.readNoQC().EndFrame()
         else:
             self.basZmw = None
 
@@ -106,13 +138,19 @@ class TraceViewer(QtGui.QMainWindow):
             self.renderPulses(plsZmw)
 
         if self.aln is not None:
-            alns = self.aln.readsByHoleNumber(holeNumber)
+            self.alns = self.aln.readsByHoleNumber(holeNumber)
         else:
-            alns = []
+            self.alns = []
 
         if self.basZmw is not None:
-            regions = Region.fetchRegions(self.basZmw, alns)
+            regions = Region.fetchRegions(self.basZmw, self.alns)
             self.renderRegions(regions)
+
+        if (self.basZmw is not None and self.alns):
+            self.alnView.setAlignments(self.basZmw, self.alns)
+            self.alnView.show()
+        else:
+            self.alnView.hide()
 
 
     @property

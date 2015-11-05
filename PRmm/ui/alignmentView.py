@@ -156,6 +156,7 @@ class AlignmentViewBox(BasicAlignmentViewBox):
             "".join(iScripts),
             np.concatenate(iReadPos))
 
+
 class Main(object):
 
     def run(self, basF, alnF, holeNumber):

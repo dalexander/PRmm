@@ -36,3 +36,7 @@
   - [ ] Inertial scrolling
 
 
+
+
+* Factor out fixture/model
+* Make a RangeFinder class in the model that factors out storing the start/end arrays and the bisection.  Maybe even test it!
