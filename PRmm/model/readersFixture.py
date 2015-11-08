@@ -1,9 +1,11 @@
 from PRmm.io import *
 from pbcore.io import *
+from ConfigParser import ConfigParser
 
 from docopt import docopt
 import tempfile, os, os.path as op
-from ._utils import *
+
+from PRmm.model._utils import *
 
 __all__ = [ "ReadersFixture" ]
 
@@ -22,37 +24,34 @@ class ReadersFixture(object):
                  plsFname=None, basFname=None,
                  alnFname=None, referenceFname=None):
 
-        self.trcFname = trcFname
-        if self.trcFname is not None:
-            self.trcF = TrcH5Reader(self.trcFname)
+        if trcFname is not None:
+            self.trcF = TrcH5Reader(trcFname)
         else:
             self.trcF = None
 
-        self.basFname = basFname
-        if self.basFname is not None:
-            self.basF = BasH5Reader(self.basFname)
+        if basFname is not None:
+            self.basF = BasH5Reader(basFname)
         else:
             self.basF = None
 
-        self.plsFname = plsFname
-        if self.plsFname is not None:
-            self.plsF = PlsH5Reader(self.plsFname, self.basF)
+        if plsFname is not None:
+            self.plsF = PlsH5Reader(plsFname, self.basF)
         else:
             self.plsF = None
 
-        self.alnFname = alnFname
-        if self.alnFname is not None:
-            self.alnF = CmpH5Reader(self.alnFname)
+        if alnFname is not None:
+            self.alnF = CmpH5Reader(alnFname)
             if len(self.alnF.movieNames) > 1:
                 raise ValueError, "No support for multi-movie jobs yet"
         else:
             self.alnF = None
 
-        self.referenceFname = referenceFname
-        if self.referenceFname is not None:
-            self.refF = IndexedFastaReader(self.referenceFname)
+        referenceFname = referenceFname
+        if referenceFname is not None:
+            self.refF = IndexedFastaReader(referenceFname)
         else:
             self.refF = None
+
 
     @staticmethod
     def fromSecondaryJobPath(jobPath):
@@ -95,26 +94,57 @@ class ReadersFixture(object):
                               basFname=basFname, alnFname=alnFname)
 
     @staticmethod
-    def fromIniFile(iniFilename, entryName):
-        pass
+    def fromIniFile(iniFilename, sectionName):
+        cp = ConfigParser()
+        cp.optionxform=str
+        cp.read(iniFilename)
+        #import ipdb; ipdb.set_trace()
+        opts = dict(cp.items(sectionName))
+        print opts
+        return ReadersFixture(trcFname=opts.get("Traces"),
+                              plsFname=opts.get("Pulses"),
+                              basFname=opts.get("Bases"),
+                              alnFname=opts.get("Alignments"))
+
+
 
     def __repr__(self):
-        fnameFields = [ fn for fn in dir(self) if fn.endswith("Fname") ]
-        fnames = ", ".join(["%s=%s" % (fieldName, getattr(self, fieldName))
-                            for fieldName in fnameFields])
-        return "<ReadersFixture { %s }>" % fnames
+        import pprint
+        readerFieldNames = [ fn for fn in dir(self) if fn.endswith("F") ]
+        readersRepr = "\n  " + ",\n  ".join(["%s=%s" % (fieldName, getattr(self, fieldName))
+                            for fieldName in readerFieldNames])
+        return "<ReadersFixture %s >" % readersRepr
 
 
+    # -- Essential info ---
+
+    @property
+    def movieName(self):
+        pass
+
+    @property
     def hasTraces(self):
         pass
 
+    @property
     def hasPulses(self):
         pass
 
+    @property
     def hasBases(self):
         pass
 
+    @property
     def hasAlignments(self):
+        pass
+
+
+    # --- Access by holenumber ---
+
+    def holeNumbers(self):
+        pass
+
+    def holeNumbersWithAlignments(self):
         pass
 
     def __getitem__(self, holenumber):
@@ -127,14 +157,21 @@ __doc__ = \
 Usage:
   fixture.py fromSecondaryJobPath <secondaryJobPath>
   fixture.py fromPaths <reportsPath> <secondaryJobPath>
+  fixture.py fromIni <iniFile> <sectionName>
 """
 
 def main():
     args = docopt(__doc__)
     if args["fromSecondaryJobPath"]:
         fx = ReadersFixture.fromSecondaryJobPath(args["<secondaryJobPath>"])
-    else:
+    elif args["fromPaths"]:
         fx = ReadersFixture.fromPaths(args["<reportsPath>"], args["<secondaryJobPath>"])
+    elif args["fromIni"]:
+        fx = ReadersFixture.fromIniFile(args["<iniFile>"], args["<sectionName>"])
+    else:
+        print "Bad command"
+        return -1
+    import ipdb; ipdb.set_trace()
     print fx
 
 if __name__ == '__main__':
