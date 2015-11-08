@@ -67,3 +67,5 @@ class ZmwFixture(object):
 
     def regions(self):
         pass
+
+    # -- Interval queries --
