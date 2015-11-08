@@ -14,16 +14,17 @@ class MultipartReader(object):
         #  ~ fofn
         #  ~ h5, multipart
         #  ~ h5, single part
+        self.filename = op.abspath(op.expanduser(fname))
         if fname.endswith(".h5"):
-            directory = op.dirname(fname)
-            with h5py.File(fname, "r") as f:
+            directory = op.dirname(self.filename)
+            with h5py.File(self.filename, "r") as f:
                 if f.get("MultiPart"):
                     partFilenames = [ op.join(directory, fn)
                                       for fn in f["/MultiPart/Parts"] ]
                 else:
-                    partFilenames = [ fname ]
-        elif fname.endswith(".fofn"):
-            partFilenames = list(readFofn(fname))
+                    partFilenames = [ self.filename ]
+        elif self.filename.endswith(".fofn"):
+            partFilenames = list(readFofn(self.filename))
         self._parts = [ self.PART_READER_CLASS(pfn, *rest)
                         for pfn in partFilenames ]
 
