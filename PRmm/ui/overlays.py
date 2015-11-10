@@ -3,6 +3,7 @@ import pyqtgraph as pg
 from pyqtgraph.Qt import QtCore, QtGui
 
 from PRmm.io import BasecallsUnavailable
+from PRmm.model import Region
 
 class RegionsOverlayItem(pg.GraphicsObject):
     """

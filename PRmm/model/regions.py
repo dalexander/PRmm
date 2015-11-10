@@ -18,20 +18,3 @@ class Region(object):
         self.startFrame = startFrame
         self.endFrame   = endFrame
         self.name       = name
-
-    @staticmethod
-    def fetchRegions(basZmw, alns=[]):
-        if basZmw is not None:
-            basRead = basZmw.readNoQC()
-            endFrames = np.cumsum(basRead.PreBaseFrames() + basRead.WidthInFrames())
-            startFrames = endFrames - basRead.PreBaseFrames()
-            for basRegion in basZmw.regionTable:
-                startFrame = startFrames[basRegion.regionStart]
-                endFrame = endFrames[basRegion.regionEnd-1] # TODO: check this logic
-                yield Region(basRegion.regionType, startFrame, endFrame, "")
-            # Are there alignments?
-            if alns:
-                for aln in alns:
-                    yield Region(Region.ALIGNMENT_REGION,
-                                 startFrames[aln.rStart],
-                                 endFrames[aln.rEnd-1], "")

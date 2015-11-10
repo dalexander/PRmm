@@ -18,3 +18,8 @@ def findOneOrNone(pattern, path):
 
 def updir(path):
     return op.abspath(op.join(path, os.pardir))
+
+
+
+# Caching decorator
+## Implement me!

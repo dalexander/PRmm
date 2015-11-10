@@ -6,8 +6,13 @@ from docopt import docopt
 import tempfile, os, os.path as op
 
 from PRmm.model._utils import *
+from PRmm.model.zmwFixture import ZmwFixture
 
 __all__ = [ "ReadersFixture" ]
+
+
+class TraceUnavailable(Exception): pass
+
 
 class ReadersFixture(object):
     """
@@ -22,35 +27,18 @@ class ReadersFixture(object):
     # This will not typically be called directly!
     def __init__(self, trcFname=None,
                  plsFname=None, basFname=None,
-                 alnFname=None, referenceFname=None):
+                 alnFname=None, refFname=None):
 
-        if trcFname is not None:
-            self.trcF = TrcH5Reader(trcFname)
-        else:
-            self.trcF = None
-
-        if basFname is not None:
-            self.basF = BasH5Reader(basFname)
-        else:
-            self.basF = None
-
-        if plsFname is not None:
-            self.plsF = PlsH5Reader(plsFname, self.basF)
-        else:
-            self.plsF = None
-
-        if alnFname is not None:
-            self.alnF = CmpH5Reader(alnFname)
+        self.trcF = None if trcFname is None else TrcH5Reader(trcFname)
+        self.basF = None if basFname is None else BasH5Reader(basFname)
+        self.plsF = None if plsFname is None else PlsH5Reader(plsFname, self.basF)
+        self.refF = None if refFname is None else IndexedFastaReader(refFname)
+        self.alnF = None if alnFname is None else CmpH5Reader(alnFname)
+        if self.alnF is not None:
             if len(self.alnF.movieNames) > 1:
-                raise ValueError, "No support for multi-movie jobs yet"
-        else:
-            self.alnF = None
-
-        referenceFname = referenceFname
-        if referenceFname is not None:
-            self.refF = IndexedFastaReader(referenceFname)
-        else:
-            self.refF = None
+                raise ValueError, "No support for multi-movie jobs"
+        if self.trcF is None:
+            raise ValueError, "trc.h5 required, for now"
 
 
     @staticmethod
@@ -95,12 +83,11 @@ class ReadersFixture(object):
 
     @staticmethod
     def fromIniFile(iniFilename, sectionName):
+        iniFilename = op.abspath(op.expanduser(iniFilename))
         cp = ConfigParser()
         cp.optionxform=str
         cp.read(iniFilename)
-        #import ipdb; ipdb.set_trace()
         opts = dict(cp.items(sectionName))
-        print opts
         return ReadersFixture(trcFname=opts.get("Traces"),
                               plsFname=opts.get("Pulses"),
                               basFname=opts.get("Bases"),
@@ -120,35 +107,43 @@ class ReadersFixture(object):
 
     @property
     def movieName(self):
-        pass
+        return self.trcF.movieName
 
     @property
     def hasTraces(self):
-        pass
+        return self.trcF is not None
 
     @property
     def hasPulses(self):
-        pass
+        return self.plsF is not None
 
     @property
     def hasBases(self):
-        pass
+        return self.basF is not None
+
+    @property
+    def hasReference(self):
+        return self.refF is not None
 
     @property
     def hasAlignments(self):
-        pass
-
+        return self.alnF is not None
 
     # --- Access by holenumber ---
 
+    @property
     def holeNumbers(self):
-        pass
+        return self.trcF.holeNumbers
 
+    @property
     def holeNumbersWithAlignments(self):
-        pass
+        raise Exception, "unimplemented"
 
-    def __getitem__(self, holenumber):
-        pass
+    def __getitem__(self, holeNumber):
+        if holeNumber not in self.holeNumbers:
+            raise TraceUnavailable, "No trace for desired HN"
+        else:
+            return ZmwFixture(self, holeNumber)
 
 
 
@@ -171,7 +166,6 @@ def main():
     else:
         print "Bad command"
         return -1
-    import ipdb; ipdb.set_trace()
     print fx
 
 if __name__ == '__main__':

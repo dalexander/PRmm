@@ -1,24 +1,16 @@
 #!/usr/bin/env python
-"""
-Usage: traceViewer1.py [--debug]
-                       [--pls=PLXFILE]
-                       [--bas=BAXFILE]
-                       [--aln=ALNFILE]
-                       --hole=HOLENUMBER
-                       TRXFILE
-"""
+
+
 import numpy as np
 from bisect import bisect_left, bisect_right
 import pyqtgraph as pg
 from docopt import docopt
 from pyqtgraph.Qt import QtCore, QtGui
 
-from pbcore.io import BasH5Reader, CmpH5Reader
-
-from PRmm.io import TrcH5Reader, PlsH5Reader, BasecallsUnavailable
 from PRmm.ui.overlays import *
 from PRmm.ui.tracePlot import *
 from PRmm.ui.alignmentView import *
+from PRmm.model import *
 
 def debug_trace():
     # http://stackoverflow.com/questions/1736015/debugging-a-pyqt4-app
@@ -29,18 +21,13 @@ def debug_trace():
 
 class TraceViewer(QtGui.QMainWindow):
 
-    def __init__(self, trc,
-                 pls=None, bas=None, aln=None):
+    def __init__(self, readers):
         """
-        trc:        a TrxH5Reader object
-        pls:        a PlxH5Reader object (or None)
+        readers: a readers fixture
         """
         super(TraceViewer, self).__init__()
-        self.trc = trc
-        self.pls = pls
-        self.bas = bas
-        self.aln = aln
-        self.holeNumber = None
+        self.readers = readers
+        self.zmw = None
         self.initUI()
 
     def initUI(self):
@@ -51,7 +38,7 @@ class TraceViewer(QtGui.QMainWindow):
         self.plot1 = TracePlotItem()
         self.glw.addItem(self.plot1)
 
-        if self.aln is not None:
+        if self.readers.hasAlignments:
             self.glw.nextRow()
             self.alnView = AlignmentViewBox._uninitialized()
             self.glw.addItem(self.alnView)
@@ -83,11 +70,15 @@ class TraceViewer(QtGui.QMainWindow):
 
     @property
     def movieName(self):
-        return self.trc.movieName
+        return self.readers.movieName
 
     @property
     def zmwName(self):
-        return self.movieName + "/" + str(self.holeNumber)
+        return self.zmw.zmwName
+
+    @property
+    def holeNumber(self):
+        return self.zmw.holeNumber
 
     @property
     def frameInterval(self):
@@ -107,21 +98,24 @@ class TraceViewer(QtGui.QMainWindow):
         # overlays, etc):
         self.plot1.clear()
 
-        self.holeNumber = holeNumber
-        traceData = self.trc[holeNumber]
+        self.zmw = self.readers[holeNumber]
+        traceData = self.zmw.cameraTrace
         traceFrameExtent = (0, traceData.shape[1])
 
-        if self.pls is not None:
-            plsZmw = self.pls[holeNumber]
-        else:
-            plsZmw = None
 
-        if self.bas is not None:
-            self.basZmw = self.bas[holeNumber]
-            self.basStartFrame = self.basZmw.readNoQC().StartFrame()
-            self.basEndFrame = self.basZmw.readNoQC().EndFrame()
-        else:
-            self.basZmw = None
+
+
+        # if self.pls is not None:
+        #     plsZmw = self.pls[holeNumber]
+        # else:
+        #     plsZmw = None
+
+        # if self.bas is not None:
+        #     self.basZmw = self.bas[holeNumber]
+        #     self.basStartFrame = self.basZmw.readNoQC().StartFrame()
+        #     self.basEndFrame = self.basZmw.readNoQC().EndFrame()
+        # else:
+        #     self.basZmw = None
 
         if (frameBegin is None) or (frameEnd is None):
             frameBegin, frameEnd = traceFrameExtent
@@ -200,47 +194,29 @@ class TraceViewer(QtGui.QMainWindow):
     # mouse event?
 
 
+__doc__ = \
+"""
+Usage:
+    main.py [--debug] --fixture=INIFILE::SECTION --hole=HOLENUMBER
+"""
+
 def main():
     args = docopt(__doc__)
     if args["--debug"] is not False:
-        print "Args: ", args
-    trcFname = args["TRXFILE"]
-    trc = TrcH5Reader(trcFname)
+        print "Args: \n", args
+    fixtureArg = args["--fixture"]
+    if "::" not in fixtureArg:
+        fixtureIni, fixtureSection = "~/.pacbio/data-fixtures.ini", fixtureArg
+    else:
+        fixtureIni, fixtureSection = fixtureArg.split("::")
+    fixture = ReadersFixture.fromIniFile(fixtureIni, fixtureSection)
+
     holeNumber = int(args["--hole"])
 
-    # -- Optional readers
-    if args["--bas"] is not None:
-        bas = BasH5Reader(args["--bas"])
-    else:
-        bas = None
-
-    if args["--pls"] is not None:
-        pls = PlsH5Reader(args["--pls"], bas)
-    else:
-        pls = None
-
-    if args["--aln"] is not None:
-        aln = CmpH5Reader(args["--aln"])
-    else:
-        aln = None
-    # --
-
     app = QtGui.QApplication([])
-    traceViewer = TraceViewer(trc, pls, bas, aln)
+    traceViewer = TraceViewer(fixture)
     traceViewer.setFocus(holeNumber)
 
     if args["--debug"]:
         debug_trace()
     app.exec_()
-
-
-# Thoughts:
-#   A good start.  Things that would help:
-#   - ability to pan with l/r buttons
-#   - start with good defaults for x/y zoom, otherwise it looks like noise
-
-
-# Look at CustomGraphics example for shapes
-# Look at LabeledGraph example for text overlay
-
-# Tooltips for pulses?
