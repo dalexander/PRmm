@@ -15,9 +15,13 @@ class Region(object):
     ADAPTER_REGION = 0
     INSERT_REGION  = 1
     HQ_REGION      = 2
-
     # This is new
     ALIGNMENT_REGION = 101
+
+    typeNames = { ADAPTER_REGION   : "ADAPTER",
+                  INSERT_REGION    : "INSERT",
+                  HQ_REGION        : "HQ",
+                  ALIGNMENT_REGION : "ALIGNMENT" }
 
     def __init__(self, regionType, startFrame, endFrame, name):
         self.regionType = regionType
@@ -26,11 +30,14 @@ class Region(object):
         self.name       = name
 
     @staticmethod
-    def fetchRegions(basZmw, alns=[]):
-        if basZmw is not None:
+    def fetchRegions(basZmw, plsZmw, alns=[]):
+        if (basZmw is not None and plsZmw is not None):
             basRead = basZmw.readNoQC()
-            endFrames = np.cumsum(basRead.PreBaseFrames() + basRead.WidthInFrames())
-            startFrames = endFrames - basRead.PreBaseFrames()
+            plsRead = plsZmw.pulses()
+            pi = basRead.PulseIndex()
+            startFrames = plsRead.startFrame()[pi]
+            endFrames = startFrames + basRead.WidthInFrames()
+            assert len(startFrames) == len(basRead)
             for basRegion in basZmw.regionTable:
                 startFrame = startFrames[basRegion.regionStart]
                 endFrame = endFrames[basRegion.regionEnd-1] # TODO: check this logic
@@ -41,6 +48,12 @@ class Region(object):
                     yield Region(Region.ALIGNMENT_REGION,
                                  startFrames[aln.rStart],
                                  endFrames[aln.rEnd-1], "")
+
+
+    def __repr__(self):
+        return "<Region: %s %7d %7d>" % (Region.typeNames[self.regionType],
+                                         self.startFrame,
+                                         self.endFrame)
 
 
 class RegionsOverlayItem(pg.GraphicsObject):

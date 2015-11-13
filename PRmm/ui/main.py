@@ -112,16 +112,20 @@ class TraceViewer(QtGui.QMainWindow):
         traceFrameExtent = (0, traceData.shape[1])
 
         if self.pls is not None:
-            plsZmw = self.pls[holeNumber]
+            self.plsZmw = self.pls[holeNumber]
         else:
-            plsZmw = None
+            self.plsZmw = None
 
         if self.bas is not None:
             self.basZmw = self.bas[holeNumber]
-            self.basStartFrame = self.basZmw.readNoQC().StartFrame()
-            self.basEndFrame = self.basZmw.readNoQC().EndFrame()
         else:
             self.basZmw = None
+
+        if (self.bas is not None) and (self.pls is not None):
+            pulseStartFrame = self.plsZmw.pulses().startFrame()
+            pi = self.basZmw.readNoQC().PulseIndex()
+            self.basStartFrame = pulseStartFrame[pi]
+            self.basEndFrame = self.basStartFrame + self.basZmw.readNoQC().WidthInFrames()
 
         if (frameBegin is None) or (frameEnd is None):
             frameBegin, frameEnd = traceFrameExtent
@@ -134,16 +138,16 @@ class TraceViewer(QtGui.QMainWindow):
         self.plot1.setTitle(self.zmwName)
 
         self.renderTrace(traceData)
-        if plsZmw is not None:
-            self.renderPulses(plsZmw)
+        if self.plsZmw is not None:
+            self.renderPulses(self.plsZmw)
 
         if self.aln is not None:
             self.alns = self.aln.readsByHoleNumber(holeNumber)
         else:
             self.alns = []
 
-        if self.basZmw is not None:
-            regions = Region.fetchRegions(self.basZmw, self.alns)
+        if (self.basZmw is not None) and (self.plsZmw is not None):
+            regions = Region.fetchRegions(self.basZmw, self.plsZmw, self.alns)
             self.renderRegions(regions)
 
         if (self.basZmw is not None and self.alns):
