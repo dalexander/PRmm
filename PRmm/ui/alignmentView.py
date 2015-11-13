@@ -60,6 +60,10 @@ class BasicAlignmentViewBox(pg.ViewBox):
         self.text = self.alnTpl + "\n" + self.transcript + "\n" + self.alnRead
         self.ti.setPlainText(self.text)
 
+    @property
+    def isInitialized(self):
+        return self.aPos is not None
+
     def charPos(self, aStart, aEnd):
         # returns cStart, cMid, cEnd---the character offsets into the
         # alignment corresponding to the given read positioins
@@ -80,12 +84,12 @@ class BasicAlignmentViewBox(pg.ViewBox):
                                 self.margin + cEnd * self.charWidth))
 
     def focus(self, aStart, aEnd):
-        #debug_trace()
-        self.aStart = aStart
-        self.aEnd = aEnd
-        cStart, cMid, cEnd = self.charPos(aStart, aEnd)
-        self.highlightRange(cStart, cEnd)
-        self.center(cMid)
+        if self.isInitialized:
+            self.aStart = aStart
+            self.aEnd = aEnd
+            cStart, cMid, cEnd = self.charPos(aStart, aEnd)
+            self.highlightRange(cStart, cEnd)
+            self.center(cMid)
 
 
 class AlignmentViewBox(BasicAlignmentViewBox):
