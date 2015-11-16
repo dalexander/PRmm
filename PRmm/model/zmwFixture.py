@@ -1,7 +1,7 @@
 import numpy as np
 from functools import wraps
 
-from PRmm.model import Region
+from PRmm.model import Region, MultiAlignment
 
 def cached(f):
     """
@@ -128,9 +128,7 @@ class ZmwFixture(object):
 
     @property
     def multiAlignment(self):
-        # returns (ref, transcriptEx+, read) :: (str, str, str),
-        # where read represents the entire polymerase read
-        raise Unimplemented()
+        return MultiAlignment.fromAlnHits(self.baseLabel, self._alns)
 
     # -- Regions info --
 

@@ -1,3 +1,4 @@
-from .regions import *
+from .regions        import *
+from .multiAlignment import *
 from .readersFixture import *
-from .zmwFixture import *
+from .zmwFixture     import *
