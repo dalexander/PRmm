@@ -20,6 +20,8 @@ def cached(f):
     return g
 
 class Unimplemented(Exception): pass
+class Unavailable(Exception): pass
+
 
 class ZmwFixture(object):
     """
@@ -34,19 +36,12 @@ class ZmwFixture(object):
     def __init__(self, readersFixture, holeNumber):
         self.readers = readersFixture
         self.holeNumber = holeNumber
-        self._plsZmw = self.readers.plsF[holeNumber] if self.readers.hasPulses else None
-        self._basZmw = self.readers.basF[holeNumber] if self.readers.hasBases  else None
+        self._pulses = self.readers.plsF[holeNumber].pulses()  if self.readers.hasPulses else None
+        self._bases = self.readers.basF[holeNumber].readNoQC() if self.readers.hasBases  else None
         if self.readers.hasAlignments:
-            self._alnsZmw = self.readers.alnF.readsByHoleNumber(holeNumber)
+            self._alns = self.readers.alnF.readsByHoleNumber(holeNumber)
         else:
-            self._alnsZmw = []
-
-        # Cache this stuff:
-
-        #     self.basStartFrame = self.basZmw.readNoQC().StartFrame()
-        #     self.basEndFrame = self.basZmw.readNoQC().EndFrame()
-
-
+            self._alns = []
 
     # -- Identifying info --
 
@@ -68,45 +63,68 @@ class ZmwFixture(object):
 
     @property
     def hasPulses(self):
-        return self._plsZmw is not None
+        return self._pulses is not None
 
     @property
-    def pulses(self):
-        pass
+    def numPulses(self):
+        return len(self._pulses)
 
     @property
-    def pulseFrameStart(self):
-        pass
+    def pulseLabel(self):
+        return self._pulses.channelBases()
 
     @property
-    def pulseFrameEnd(self):
-        pass
+    def pulseStartFrame(self):
+        return self._pulses.startFrame()
+
+    @property
+    def pulseEndFrame(self):
+        return self._pulses.endFrame()
+
+    @property
+    def pulsePkmid(self):
+        return self._pulses.midSignal()
+
+    @property
+    def pulsePkmean(self):
+        return self._pulses.meanSignal()
+
+    @property
+    def pulseIsBase(self):
+        ans = np.zeros(self.numPulses, dtype=bool)
+        ans[self.basePulseIndex] = True
+        return ans
 
     # -- Basecall info --
 
     @property
     def hasBases(self):
-        return self._basZmw is not None
+        return self._bases is not None
 
     @property
-    def bases(self):
-        pass
+    def baseLabel(self):
+        return self._bases.basecalls()
 
     @property
-    def baseFrameStart(self):
-        pass
+    @cached
+    def baseStartFrame(self):
+        return self.pulseStartFrame[self.basePulseIndex]
 
     @property
-    def baseFrameEnd(self):
-        pass
+    @cached
+    def baseEndFrame(self):
+        return self.pulseEndFrame[self.basePulseIndex]
 
-    # signal intensity...
+    @property
+    def basePulseIndex(self):
+        return self._bases.PulseIndex()
+
 
     # -- Alignment info ---
 
     @property
     def hasAlignments(self):
-        return bool(self._alnsZmw)
+        return bool(self._alns)
 
     @property
     def multiAlignment(self):
@@ -114,26 +132,27 @@ class ZmwFixture(object):
         # where read represents the entire polymerase read
         raise Unimplemented()
 
-
     # -- Regions info --
 
     @property
     def regions(self):
-        # Fix this code, it was just transplanted
-        if self.basZmw is not None:
-            basRead = self.basZmw.readNoQC()
-            endFrames = np.cumsum(basRead.PreBaseFrames() + basRead.WidthInFrames())
-            startFrames = endFrames - basRead.PreBaseFrames()
-            for basRegion in basZmw.regionTable:
-                startFrame = startFrames[basRegion.regionStart]
-                endFrame = endFrames[basRegion.regionEnd-1] # TODO: check this logic
-                yield Region(basRegion.regionType, startFrame, endFrame, "")
+        """
+        Get region info---FRAME delimited
+        """
+        if (not self.hasPulses or not self.hasBases):
+            raise Unavailable, "Pulses and bases are required to access regions"
+        else:
+            ans = []
+            for basRegion in self._bases.zmw.regionTable:
+                startFrame = self.baseStartFrame[basRegion.regionStart]
+                endFrame = self.baseEndFrame[basRegion.regionEnd-1] # TODO: check this logic
+                ans.append(Region(basRegion.regionType, startFrame, endFrame))
             # Are there alignments?
-            if alns:
-                for aln in alns:
-                    yield Region(Region.ALIGNMENT_REGION,
-                                 startFrames[aln.rStart],
-                                 endFrames[aln.rEnd-1], "")
-
+            if self.hasAlignments:
+                for aln in self._alns:
+                    ans.append(Region(Region.ALIGNMENT_REGION,
+                                 self.baseStartFrame[aln.rStart],
+                                 self.baseEndFrame[aln.rEnd-1]))
+            return sorted(ans)
 
     # -- Interval queries --
