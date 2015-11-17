@@ -47,9 +47,6 @@ class TraceViewer(QtGui.QMainWindow):
         if self.alnView is not None:
             # Only so this if we are showing base labels
             def xRangeChangedHandler(x):
-                print "The x-axis was changed!"
-                print self.frameInterval
-                print self.baseInterval
                 self.alnView.focus(*self.baseInterval)
             self.plot1.sigXRangeChanged.connect(xRangeChangedHandler)
 
