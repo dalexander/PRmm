@@ -48,8 +48,9 @@ class AlignmentViewBox(pg.ViewBox):
         for line in self.roiItem.lines:
             line.setPen(redPen)
         self.addItem(self.roiItem)
+        self.multiAln = None
 
-    def setAlignment(self, multiAln):
+    def setAlignments(self, multiAln):
         self.multiAln = multiAln
         self.text = multiAln.reference + "\n" + multiAln.transcript + "\n" + multiAln.read
         self.ti.setPlainText(self.text)

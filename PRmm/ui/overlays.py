@@ -56,9 +56,9 @@ class PulsesOverlayItem(pg.GraphicsObject):
     """
     The pulses!
     """
-    def __init__(self, plsZmw, plot):
+    def __init__(self, zmwFixture, plot):
         pg.GraphicsObject.__init__(self)
-        self.plsZmw = plsZmw
+        self.zmw = zmwFixture
         self.plot = plot
         self.generatePicture()
         self._textItems = []
@@ -70,11 +70,10 @@ class PulsesOverlayItem(pg.GraphicsObject):
 
     def generatePicture(self):
         # Precompute a QPicture object
-        allPulses = self.plsZmw.pulses()
-        startFrame    = allPulses.startFrame()
-        widthInFrames = allPulses.widthInFrames()
-        channel       = allPulses.channel()
-        base          = allPulses.channelBases()
+        startFrame    = self.zmw.pulseStartFrame
+        widthInFrames = self.zmw.pulseWidth
+        channel       = self.zmw.pulseChannel
+        base          = self.zmw.pulseLabel
 
         self.picture = QtGui.QPicture()
         p = QtGui.QPainter(self.picture)
@@ -101,21 +100,19 @@ class PulsesOverlayItem(pg.GraphicsObject):
         else:
             return pulsesToDraw
 
-    def labelPulses(self, pulsesToLabel):
+    def labelPulses(self):
         # Remove the old labels from the scene
         for ti in self._textItems:
             ti.scene().removeItem(ti)
         self._textItems = []
 
-        if pulsesToLabel is None: return
-
-        start      = pulsesToLabel.startFrame()
-        width      = pulsesToLabel.widthInFrames()
-        channel    = pulsesToLabel.channel()
-        base       = pulsesToLabel.channelBases()
+        start      = self.zmw.pulseStartFrame
+        width      = self.zmw.pulseWidth
+        channel    = self.zmw.pulseChannel
+        base       = self.zmw.pulseLabel
         mid        = start + width / 2.0
         try:
-            isBase     = pulsesToLabel.isBase()
+            isBase = self.zmw.pulseIsBase
         except BasecallsUnavailable:
             isBase = np.ones_like(channel, dtype=bool)
 
@@ -131,7 +128,7 @@ class PulsesOverlayItem(pg.GraphicsObject):
         # Draw the pulse blips
         p.drawPicture(0, 0, self.picture)
         # Draw pulse labels if the focus is small enough (< 500 frames)
-        self.labelPulses(self.pulsesToLabel())
+        self.labelPulses()
 
     def boundingRect(self):
         return QtCore.QRectF(self.picture.boundingRect())

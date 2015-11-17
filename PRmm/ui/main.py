@@ -40,7 +40,7 @@ class TraceViewer(QtGui.QMainWindow):
 
         if self.readers.hasAlignments:
             self.glw.nextRow()
-            self.alnView = AlignmentViewBox._uninitialized()
+            self.alnView = AlignmentViewBox()
             self.glw.addItem(self.alnView)
         else:
             self.alnView = None
@@ -62,11 +62,11 @@ class TraceViewer(QtGui.QMainWindow):
         for i in xrange(numChannels):
             self.plot1.plot(traceData[i,:], pen=(i,numChannels))
 
-    def renderPulses(self, plsZmw):
-        self.plot1.addItem(PulsesOverlayItem(plsZmw, self.plot1))
+    def renderPulses(self):
+        self.plot1.addItem(PulsesOverlayItem(self.zmw, self.plot1))
 
-    def renderRegions(self, regions):
-        self.plot1.addItem(RegionsOverlayItem(regions, self.plot1))
+    def renderRegions(self):
+        self.plot1.addItem(RegionsOverlayItem(self.zmw.regions, self.plot1))
 
     @property
     def movieName(self):
@@ -86,12 +86,12 @@ class TraceViewer(QtGui.QMainWindow):
 
     @property
     def baseInterval(self):
-        if self.basZmw is None:
+        if not (self.zmw.hasBases and self.zmw.hasPulses):
             raise Exception, "Base interval unavailable"
         else:
             frameStart, frameEnd = self.frameInterval
-            return (bisect_left(self.basEndFrame, frameStart),
-                    bisect_right(self.basStartFrame, frameEnd))
+            return (bisect_left(self.zmw.baseEndFrame, frameStart),
+                    bisect_right(self.zmw.baseStartFrame, frameEnd))
 
     def setFocus(self, holeNumber, frameBegin=None, frameEnd=None):
         # remove any items previously added to the plots (plot itself;
@@ -113,15 +113,15 @@ class TraceViewer(QtGui.QMainWindow):
         self.plot1.setTitle(self.zmwName)
 
         self.renderTrace(traceData)
+
         if self.zmw.hasPulses:
-            self.renderPulses(self.zmw.pulses)
+            self.renderPulses()
 
-        if self.basZmw is not None:
-            regions = Region.fetchRegions(self.basZmw, self.alns)
-            self.renderRegions(regions)
+        if self.zmw.hasRegions:
+            self.renderRegions()
 
-        if (self.basZmw is not None and self.alns):
-            self.alnView.setAlignments(self.basZmw, self.alns)
+        if self.zmw.hasBases and self.zmw.hasAlignments:
+            self.alnView.setAlignments(self.zmw.multiAlignment)
             self.alnView.show()
         else:
             self.alnView.hide()
@@ -130,7 +130,7 @@ class TraceViewer(QtGui.QMainWindow):
     @property
     def holeNumbersOfInterest(self):
         # TODO: cache this!
-        return self.trc.holeNumbers
+        return self.readers.holeNumbers
 
     def nextHoleNumber(self, hns, curHn):
         iNext = hns.searchsorted(curHn, side="right")

@@ -15,7 +15,8 @@ def cached(f):
         if f.__name__ not in self._cache:
             self._cache[f.__name__] = f(self)
         else:
-            print "Cache hit!"
+            #print "Cache hit!"
+            pass
         return self._cache[f.__name__]
     return g
 
@@ -70,6 +71,10 @@ class ZmwFixture(object):
         return len(self._pulses)
 
     @property
+    def pulseChannel(self):
+        return self._pulses.channel()
+
+    @property
     def pulseLabel(self):
         return self._pulses.channelBases()
 
@@ -80,6 +85,10 @@ class ZmwFixture(object):
     @property
     def pulseEndFrame(self):
         return self._pulses.endFrame()
+
+    @property
+    def pulseWidth(self):
+        return self._pulses.widthInFrames()
 
     @property
     def pulsePkmid(self):
@@ -131,6 +140,10 @@ class ZmwFixture(object):
         return MultiAlignment.fromAlnHits(self.baseLabel, self._alns)
 
     # -- Regions info --
+
+    @property
+    def hasRegions(self):
+        return self.hasBases and self.hasPulses
 
     @property
     def regions(self):
