@@ -87,32 +87,33 @@ class PulsesOverlayItem(pg.GraphicsObject):
             p.setPen(pens[c])
             p.drawLine(QtCore.QPointF(start, y), QtCore.QPointF(start+width, y))
 
-    def pulsesToLabel(self):
+    def pulseIntervalToLabel(self):
         """
-        Returns None, or a ZmwPulses if we are focused on a small enough window for labeling
+        Returns None, or a [s, e) interval in the pulses if we are focused
+        on a small enough window for labeling
         """
         viewRange = self.plot.viewRange()[0]
         if viewRange[1] - viewRange[0] >= 500:
             return None
-        pulsesToDraw = self.plsZmw.pulsesByFrameInterval(viewRange[0], viewRange[1])
-        if len(pulsesToDraw) > 20:
+        s, e = self.zmw.pulseIntervalFromFrames(viewRange[0], viewRange[1])
+        if e - s > 20:
             return None
         else:
-            return pulsesToDraw
+            return s, e
 
-    def labelPulses(self):
+    def labelPulses(self, s, e):
         # Remove the old labels from the scene
         for ti in self._textItems:
             ti.scene().removeItem(ti)
         self._textItems = []
 
-        start      = self.zmw.pulseStartFrame
-        width      = self.zmw.pulseWidth
-        channel    = self.zmw.pulseChannel
-        base       = self.zmw.pulseLabel
+        start      = self.zmw.pulseStartFrame [s:e]
+        width      = self.zmw.pulseWidth      [s:e]
+        channel    = self.zmw.pulseChannel    [s:e]
+        base       = self.zmw.pulseLabel      [s:e]
         mid        = start + width / 2.0
         try:
-            isBase = self.zmw.pulseIsBase
+            isBase = self.zmw.pulseIsBase     [s:e]
         except BasecallsUnavailable:
             isBase = np.ones_like(channel, dtype=bool)
 
@@ -128,7 +129,9 @@ class PulsesOverlayItem(pg.GraphicsObject):
         # Draw the pulse blips
         p.drawPicture(0, 0, self.picture)
         # Draw pulse labels if the focus is small enough (< 500 frames)
-        self.labelPulses()
+        pulseInterval = self.pulseIntervalToLabel()
+        if pulseInterval is not None:
+            self.labelPulses(*pulseInterval)
 
     def boundingRect(self):
         return QtCore.QRectF(self.picture.boundingRect())

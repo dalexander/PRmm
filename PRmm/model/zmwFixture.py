@@ -1,5 +1,6 @@
 import numpy as np
 from functools import wraps
+from bisect import bisect_left, bisect_right
 
 from PRmm.model import Region, MultiAlignment
 
@@ -167,3 +168,11 @@ class ZmwFixture(object):
             return sorted(ans)
 
     # -- Interval queries --
+
+    def baseIntervalFromFrames(self, frameStart, frameEnd):
+        return (bisect_left (self.baseEndFrame,   frameStart),
+                bisect_right(self.baseStartFrame, frameEnd))
+
+    def pulseIntervalFromFrames(self, frameStart, frameEnd):
+        return (bisect_left (self.pulseEndFrame,   frameStart),
+                bisect_right(self.pulseStartFrame, frameEnd))

@@ -2,7 +2,6 @@
 
 
 import numpy as np
-from bisect import bisect_left, bisect_right
 import pyqtgraph as pg
 from docopt import docopt
 from pyqtgraph.Qt import QtCore, QtGui
@@ -65,6 +64,7 @@ class TraceViewer(QtGui.QMainWindow):
     def renderPulses(self):
         self.plot1.addItem(PulsesOverlayItem(self.zmw, self.plot1))
 
+
     def renderRegions(self):
         self.plot1.addItem(RegionsOverlayItem(self.zmw.regions, self.plot1))
 
@@ -88,10 +88,7 @@ class TraceViewer(QtGui.QMainWindow):
     def baseInterval(self):
         if not (self.zmw.hasBases and self.zmw.hasPulses):
             raise Exception, "Base interval unavailable"
-        else:
-            frameStart, frameEnd = self.frameInterval
-            return (bisect_left(self.zmw.baseEndFrame, frameStart),
-                    bisect_right(self.zmw.baseStartFrame, frameEnd))
+        return self.zmw.baseIntervalFromFrames(*self.frameInterval)
 
     def setFocus(self, holeNumber, frameBegin=None, frameEnd=None):
         # remove any items previously added to the plots (plot itself;
