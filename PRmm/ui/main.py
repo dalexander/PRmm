@@ -154,7 +154,8 @@ class TraceViewer(QtGui.QMainWindow):
             self.alnView.setAlignments(self.basZmw, self.alns)
             self.alnView.show()
         else:
-            self.alnView.hide()
+            if self.alnView is not None:
+                self.alnView.hide()
 
 
     @property
