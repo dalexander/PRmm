@@ -57,6 +57,10 @@ class TrxH5Reader(object):
         return self._traceData.shape[1]
 
     @property
+    def numFrames(self):
+        return self._traceData.shape[2]
+
+    @property
     def movieName(self):
         return self.file["/ScanData/RunInfo"].attrs["MovieName"]
 
@@ -69,11 +73,10 @@ class TrxH5Reader(object):
         return self.file["/ScanData/AcqParams"].attrs["FrameRate"]
 
     @property
-    def movieLengthInFrames(self):
-        return self._traceData.shape[2]
-
-    @property
     def movieLength(self):
+        """
+        Value returned is in seconds
+        """
         return float(self.movieLengthInFrames) / self.frameRate
 
     @property
@@ -106,6 +109,10 @@ class TrcH5Reader(MultipartReader):
         return self._parts[0].numChannels
 
     @property
+    def numFrames(self):
+        return self._parts[0].numFrames
+
+    @property
     def movieName(self):
         return self._parts[0].movieName
 
@@ -116,10 +123,6 @@ class TrcH5Reader(MultipartReader):
     @property
     def frameRate(self):
         return self._parts[0].frameRate
-
-    @property
-    def movieLengthInFrames(self):
-        return self._parts[0].movieLengthInFrames
 
     @property
     def movieLength(self):

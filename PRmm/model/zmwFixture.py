@@ -61,6 +61,11 @@ class ZmwFixture(object):
     def dwsTrace(self):
         raise Unimplemented()
 
+    @property
+    def numFrames(self):
+        return self.readers.trcF.numFrames
+
+
     # -- Pulsecall info --
 
     @property
