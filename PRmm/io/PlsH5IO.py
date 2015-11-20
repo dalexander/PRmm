@@ -173,7 +173,7 @@ class PlxH5Reader(object):
         self.baseMap = self.file["/ScanData/DyeSet"].attrs["BaseMap"][:]
         self._pulsecallsGroup = self.file["/PulseData/PulseCalls"]
         self._pulsecallsZmwGroup = self.file["/PulseData/PulseCalls/ZMW"]
-        self._pulsecallsZmwMetrics = self.file["/PulseData/PulseCalls/ZMWMetrics"]
+        #self._pulsecallsZmwMetrics = self.file["/PulseData/PulseCalls/ZMWMetrics"]
         holeNumbers = self._pulsecallsGroup["ZMW/HoleNumber"][:]
         self._holeNumberToIndex = dict(zip(holeNumbers, range(len(holeNumbers))))
         self._offsetsByHole = _makeOffsetsDataStructure(self._pulsecallsGroup)
