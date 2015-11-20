@@ -3,7 +3,8 @@ __all__ = [ "AlignmentViewBox" ]
 import sys, numpy as np, pyqtgraph as pg
 from bisect import bisect_right, bisect_left
 from pyqtgraph.Qt import QtCore, QtGui
-from pbcore.io import *
+from PRmm.model import *
+
 
 borderPen = pg.mkPen((255,255,255), width=1)
 textColor = pg.mkColor(255, 255, 255)
@@ -21,11 +22,10 @@ def debug_trace():
     set_trace()
 
 
-class BasicAlignmentViewBox(pg.ViewBox):
-    def __init__(self, alnTpl, alnRead, transcript, aPos, width=None):
+class AlignmentViewBox(pg.ViewBox):
+    def __init__(self, width=None):
         # TODO: Why on earth do we need this invertY business here
         pg.ViewBox.__init__(self, invertY=True, border=borderPen, enableMouse=False)
-
         self.ti = QtGui.QGraphicsTextItem()
         self.ti.setDefaultTextColor(textColor)
         self.ti.setFont(monospaceFont)
@@ -34,11 +34,9 @@ class BasicAlignmentViewBox(pg.ViewBox):
         self.textHeight = 3 * fm.lineSpacing()
         self.tightTextHeight = 2 * fm.lineSpacing() + fm.ascent()
 
-        self.setBasicAlignment(alnTpl, alnRead, transcript, aPos)
-
-
         self.disableAutoRange(pg.ViewBox.XYAxes)
-        self.setFixedHeight(self.ti.boundingRect().height())
+        self.setFixedHeight(self.textHeight + fm.xHeight())  # This is a real hack.
+
         if width is not None:
             self.setFixedWidth(width)
         self.setRange(yRange=(0, self.boundingRect().height()), padding=0)
@@ -50,25 +48,22 @@ class BasicAlignmentViewBox(pg.ViewBox):
         for line in self.roiItem.lines:
             line.setPen(redPen)
         self.addItem(self.roiItem)
+        self.multiAln = None
 
-
-    def setBasicAlignment(self, tpl, read, transcript, aPos):
-        self.alnTpl = tpl
-        self.alnRead = read
-        self.transcript = transcript
-        self.aPos = aPos
-        self.text = self.alnTpl + "\n" + self.transcript + "\n" + self.alnRead
+    def setAlignments(self, multiAln):
+        self.multiAln = multiAln
+        self.text = multiAln.reference + "\n" + multiAln.transcript + "\n" + multiAln.read
         self.ti.setPlainText(self.text)
 
     @property
     def isInitialized(self):
-        return self.aPos is not None
+        return self.multiAln is not None
 
     def charPos(self, aStart, aEnd):
         # returns cStart, cMid, cEnd---the character offsets into the
         # alignment corresponding to the given read positioins
-        cStart = bisect_left(self.aPos, aStart)
-        cEnd   = bisect_left(self.aPos, aEnd)
+        cStart = bisect_left(self.multiAln.readPos, aStart)
+        cEnd   = bisect_left(self.multiAln.readPos, aEnd)
         cMid   = float(cStart + cEnd) / 2
         return cStart, cMid, cEnd
 
@@ -92,78 +87,9 @@ class BasicAlignmentViewBox(pg.ViewBox):
             self.center(cMid)
 
 
-class AlignmentViewBox(BasicAlignmentViewBox):
-    """
-    This class extents BasicAlignmentViewBox with the ability to grab
-    the data from cmp.h5/BAM records
-    """
-    @staticmethod
-    def _uninitialized(**kwargs):
-        return AlignmentViewBox("", "", "", None, **kwargs)
-
-    @staticmethod
-    def fromSingleAlignment(alnHit, **kwargs):
-        s = AlignmentViewBox._uninitialized(**kwargs)
-        s.setAlignment(alnHit)
-        return s
-
-    @staticmethod
-    def fromAllAlignmentsInZmw(basZmw, alnHits, **kwargs):
-        s = AlignmentViewBox._uninitialized(**kwargs)
-        s.setAlignments(basZmw, alnHits)
-        return s
-
-    def setAlignment(self, alnHit, aStart=None, aEnd=None):
-        self.setBasicAlignment(
-            alnHit.reference (orientation="native", aligned=True),
-            alnHit.read      (orientation="native", aligned=True),
-            alnHit.transcript(orientation="native", style="exonerate+"),
-            alnHit.readPositions(orientation="native"))
-        if aStart is None:
-            aStart = alnHit.aStart
-            aEnd = aStart
-        self.focus(aStart, aEnd)
-
-    def setAlignments(self, basZmw, alnHits, aStart=None, aEnd=None):
-        sortedHits = sorted(alnHits, key=lambda h: h.aStart)
-        fullRead = basZmw.readNoQC().basecalls()
-
-        iRefs    = []
-        iReads   = []
-        iScripts = []
-        iReadPos = []
-
-        def addAlignedInterval(hit):
-            iRefs    .append(hit.reference (orientation="native", aligned=True))
-            iReads   .append(hit.read      (orientation="native", aligned=True))
-            iScripts .append(hit.transcript(orientation="native", style="exonerate+"))
-            iReadPos .append(hit.readPositions(orientation="native"))
-
-        def addUnalignedInterval(rStart, rEnd):
-            iRefs    .append(" " * (rEnd-rStart))
-            iReads   .append(fullRead[rStart:rEnd])
-            iScripts .append(" " * (rEnd-rStart))
-            iReadPos .append(np.arange(rStart, rEnd, dtype=np.int))
-
-        prevEnd = 0
-        for hit in sortedHits:
-            if hit.aStart > prevEnd:
-                addUnalignedInterval(prevEnd, hit.aStart)
-            addAlignedInterval(hit)
-            prevEnd = hit.aEnd
-        if prevEnd < len(fullRead):
-            addUnalignedInterval(hit.aEnd, len(fullRead))
-
-        self.setBasicAlignment(
-            "".join(iRefs),
-            "".join(iReads),
-            "".join(iScripts),
-            np.concatenate(iReadPos))
-
-
 class Main(object):
 
-    def run(self, basF, alnF, holeNumber):
+    def run(self, readers, holeNumber):
         self.app = QtGui.QApplication([])
         self.win = QtGui.QMainWindow()
         self.win.resize(800, 600)
@@ -191,11 +117,10 @@ class Main(object):
         self.startSpinBox.setRange(0, 1000000)
         self.widthSpinBox.setRange(0, 1000000)
 
-        alns = alnF.readsByHoleNumber(holeNumber)
-        zmw = basF[holeNumber]
-        #self.av = AlignmentViewBox.fromSingleAlignment(aln, width=740)
+        self.av = AlignmentViewBox(width=740)
+        zmw = readers[holeNumber]
         self.startSpinBox.setValue(0)
-        self.av = AlignmentViewBox.fromAllAlignmentsInZmw(zmw, alns, width=740)
+        self.av.setAlignment(zmw.multiAlignment)
         self.av.setPos(20, 20)
         self.widget1.addItem(self.av)
 
@@ -221,21 +146,12 @@ class Main(object):
 
 
 if __name__ == "__main__":
-    basFname = sys.argv[1]
-    alnFname = sys.argv[2]
-    holeNumber = int(sys.argv[3])
-    basF = BasH5Reader(basFname)
-    alnF = CmpH5Reader(alnFname)
-    zmw = basF[holeNumber]
-    alns = alnF.readsByHoleNumber(holeNumber)
-
+    readers = ReadersFixture.fromIniFile("~/.pacbio/data-fixtures.ini", "4C-lambda")
+    holeNumber = 182
     m = Main()
-    m.run(basF, alnF, holeNumber)
+    m.run(readers, holeNumber)
 
     import ipdb; ipdb.set_trace()
 
-    # m.widthSpinBox.setValue(2)
-
-    # m.setAlignment(alnF[5])
 
     sys.exit(m.app.exec_())

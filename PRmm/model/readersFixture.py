@@ -1,30 +1,18 @@
-
 from PRmm.io import *
 from pbcore.io import *
+from ConfigParser import ConfigParser
 
 from docopt import docopt
 import tempfile, os, os.path as op
-from glob import glob
 
-def find(pattern, path):
-    return glob(op.join(path, pattern))
-
-def findOne(pattern, path):
-    result = find(pattern, path)
-    if len(result) < 1:   raise IOError, "No file found matching pattern %s" % pattern
-    elif len(result) > 1: raise IOError, "More than one file found matching pattern %s" % pattern
-    else: return result[0]
-
-def findOneOrNone(pattern, path):
-    result = find(pattern, path)
-    if len(result) < 1:   return None
-    elif len(result) > 1: raise IOError, "More than one file found matching pattern %s" % pattern
-    else: return result[0]
-
-def updir(path):
-    return op.abspath(op.join(path, os.pardir))
+from PRmm.model._utils import *
+from PRmm.model.zmwFixture import ZmwFixture
 
 __all__ = [ "ReadersFixture" ]
+
+
+class TraceUnavailable(Exception): pass
+
 
 class ReadersFixture(object):
     """
@@ -39,39 +27,19 @@ class ReadersFixture(object):
     # This will not typically be called directly!
     def __init__(self, trcFname=None,
                  plsFname=None, basFname=None,
-                 alnFname=None, referenceFname=None):
+                 alnFname=None, refFname=None):
 
-        self.trcFname = trcFname
-        if self.trcFname is not None:
-            self.trcF = TrcH5Reader(self.trcFname)
-        else:
-            self.trcF = None
-
-        self.basFname = basFname
-        if self.basFname is not None:
-            self.basF = BasH5Reader(self.basFname)
-        else:
-            self.basF = None
-
-        self.plsFname = plsFname
-        if self.plsFname is not None:
-            self.plsF = PlsH5Reader(self.plsFname, self.basF)
-        else:
-            self.plsF = None
-
-        self.alnFname = alnFname
-        if self.alnFname is not None:
-            self.alnF = CmpH5Reader(self.alnFname)
+        self.trcF = None if trcFname is None else TrcH5Reader(trcFname)
+        self.basF = None if basFname is None else BasH5Reader(basFname)
+        self.plsF = None if plsFname is None else PlsH5Reader(plsFname, self.basF)
+        self.refF = None if refFname is None else IndexedFastaReader(refFname)
+        self.alnF = None if alnFname is None else CmpH5Reader(alnFname)
+        if self.alnF is not None:
             if len(self.alnF.movieNames) > 1:
-                raise ValueError, "No support for multi-movie jobs yet"
-        else:
-            self.alnF = None
+                raise ValueError, "No support for multi-movie jobs"
+        if self.trcF is None:
+            raise ValueError, "trc.h5 required, for now"
 
-        self.referenceFname = referenceFname
-        if self.referenceFname is not None:
-            self.refF = IndexedFastaReader(self.referenceFname)
-        else:
-            self.refF = None
 
     @staticmethod
     def fromSecondaryJobPath(jobPath):
@@ -113,11 +81,70 @@ class ReadersFixture(object):
         return ReadersFixture(trcFname=trcFofn.name, plsFname=plsFname,
                               basFname=basFname, alnFname=alnFname)
 
+    @staticmethod
+    def fromIniFile(iniFilename, sectionName):
+        iniFilename = op.abspath(op.expanduser(iniFilename))
+        cp = ConfigParser()
+        cp.optionxform=str
+        cp.read(iniFilename)
+        opts = dict(cp.items(sectionName))
+        return ReadersFixture(trcFname=opts.get("Traces"),
+                              plsFname=opts.get("Pulses"),
+                              basFname=opts.get("Bases"),
+                              alnFname=opts.get("Alignments"))
+
+
+
     def __repr__(self):
-        fnameFields = [ fn for fn in dir(self) if fn.endswith("Fname") ]
-        fnames = ", ".join(["%s=%s" % (fieldName, getattr(self, fieldName))
-                            for fieldName in fnameFields])
-        return "<ReadersFixture { %s }>" % fnames
+        import pprint
+        readerFieldNames = [ fn for fn in dir(self) if fn.endswith("F") ]
+        readersRepr = "\n  " + ",\n  ".join(["%s=%s" % (fieldName, getattr(self, fieldName))
+                            for fieldName in readerFieldNames])
+        return "<ReadersFixture %s >" % readersRepr
+
+
+    # -- Essential info ---
+
+    @property
+    def movieName(self):
+        return self.trcF.movieName
+
+    @property
+    def hasTraces(self):
+        return self.trcF is not None
+
+    @property
+    def hasPulses(self):
+        return self.plsF is not None
+
+    @property
+    def hasBases(self):
+        return self.basF is not None
+
+    @property
+    def hasReference(self):
+        return self.refF is not None
+
+    @property
+    def hasAlignments(self):
+        return self.alnF is not None
+
+    # --- Access by holenumber ---
+
+    @property
+    def holeNumbers(self):
+        return self.trcF.holeNumbers
+
+    @property
+    def holeNumbersWithAlignments(self):
+        raise Exception, "unimplemented"
+
+    def __getitem__(self, holeNumber):
+        if holeNumber not in self.holeNumbers:
+            raise TraceUnavailable, "No trace for desired HN"
+        else:
+            return ZmwFixture(self, holeNumber)
+
 
 
 __doc__ = \
@@ -125,14 +152,20 @@ __doc__ = \
 Usage:
   fixture.py fromSecondaryJobPath <secondaryJobPath>
   fixture.py fromPaths <reportsPath> <secondaryJobPath>
+  fixture.py fromIni <iniFile> <sectionName>
 """
 
 def main():
     args = docopt(__doc__)
     if args["fromSecondaryJobPath"]:
         fx = ReadersFixture.fromSecondaryJobPath(args["<secondaryJobPath>"])
-    else:
+    elif args["fromPaths"]:
         fx = ReadersFixture.fromPaths(args["<reportsPath>"], args["<secondaryJobPath>"])
+    elif args["fromIni"]:
+        fx = ReadersFixture.fromIniFile(args["<iniFile>"], args["<sectionName>"])
+    else:
+        print "Bad command"
+        return -1
     print fx
 
 if __name__ == '__main__':

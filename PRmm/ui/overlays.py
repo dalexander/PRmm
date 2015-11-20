@@ -3,52 +3,7 @@ import pyqtgraph as pg
 from pyqtgraph.Qt import QtCore, QtGui
 
 from PRmm.io import BasecallsUnavailable
-
-# TODO: move this somewhere else?
-class Region(object):
-    """
-    A region, in *frame* coordinates
-
-    TODO: move this logic under fixture!
-    """
-    # These agree with regions enum defined for bas/bax files
-    ADAPTER_REGION = 0
-    INSERT_REGION  = 1
-    HQ_REGION      = 2
-    # This is new
-    ALIGNMENT_REGION = 101
-
-    typeNames = { ADAPTER_REGION   : "ADAPTER",
-                  INSERT_REGION    : "INSERT",
-                  HQ_REGION        : "HQ",
-                  ALIGNMENT_REGION : "ALIGNMENT" }
-
-    def __init__(self, regionType, startFrame, endFrame, name):
-        self.regionType = regionType
-        self.startFrame = startFrame
-        self.endFrame   = endFrame
-        self.name       = name
-
-    @staticmethod
-    def fetchRegions(basZmw, plsZmw, alns=[]):
-        if (basZmw is not None and plsZmw is not None):
-            basRead = basZmw.readNoQC()
-            plsRead = plsZmw.pulses()
-            pi = basRead.PulseIndex()
-            startFrames = plsRead.startFrame()[pi]
-            endFrames = startFrames + basRead.WidthInFrames()
-            assert len(startFrames) == len(basRead)
-            for basRegion in basZmw.regionTable:
-                startFrame = startFrames[basRegion.regionStart]
-                endFrame = endFrames[basRegion.regionEnd-1] # TODO: check this logic
-                yield Region(basRegion.regionType, startFrame, endFrame, "")
-            # Are there alignments?
-            if alns:
-                for aln in alns:
-                    yield Region(Region.ALIGNMENT_REGION,
-                                 startFrames[aln.rStart],
-                                 endFrames[aln.rEnd-1], "")
-
+from PRmm.model import Region
 
     def __repr__(self):
         return "<Region: %s %7d %7d>" % (Region.typeNames[self.regionType],
@@ -107,9 +62,9 @@ class PulsesOverlayItem(pg.GraphicsObject):
     """
     The pulses!
     """
-    def __init__(self, plsZmw, plot):
+    def __init__(self, zmwFixture, plot):
         pg.GraphicsObject.__init__(self)
-        self.plsZmw = plsZmw
+        self.zmw = zmwFixture
         self.plot = plot
         self.generatePicture()
         self._textItems = []
@@ -121,11 +76,10 @@ class PulsesOverlayItem(pg.GraphicsObject):
 
     def generatePicture(self):
         # Precompute a QPicture object
-        allPulses = self.plsZmw.pulses()
-        startFrame    = allPulses.startFrame()
-        widthInFrames = allPulses.widthInFrames()
-        channel       = allPulses.channel()
-        base          = allPulses.channelBases()
+        startFrame    = self.zmw.pulseStartFrame
+        widthInFrames = self.zmw.pulseWidth
+        channel       = self.zmw.pulseChannel
+        base          = self.zmw.pulseLabel
 
         self.picture = QtGui.QPicture()
         p = QtGui.QPainter(self.picture)
@@ -139,34 +93,33 @@ class PulsesOverlayItem(pg.GraphicsObject):
             p.setPen(pens[c])
             p.drawLine(QtCore.QPointF(start, y), QtCore.QPointF(start+width, y))
 
-    def pulsesToLabel(self):
+    def pulseIntervalToLabel(self):
         """
-        Returns None, or a ZmwPulses if we are focused on a small enough window for labeling
+        Returns None, or a [s, e) interval in the pulses if we are focused
+        on a small enough window for labeling
         """
         viewRange = self.plot.viewRange()[0]
         if viewRange[1] - viewRange[0] >= 500:
             return None
-        pulsesToDraw = self.plsZmw.pulsesByFrameInterval(viewRange[0], viewRange[1])
-        if len(pulsesToDraw) > 20:
+        s, e = self.zmw.pulseIntervalFromFrames(viewRange[0], viewRange[1])
+        if e - s > 20:
             return None
         else:
-            return pulsesToDraw
+            return s, e
 
-    def labelPulses(self, pulsesToLabel):
+    def labelPulses(self, s, e):
         # Remove the old labels from the scene
         for ti in self._textItems:
             ti.scene().removeItem(ti)
         self._textItems = []
 
-        if pulsesToLabel is None: return
-
-        start      = pulsesToLabel.startFrame()
-        width      = pulsesToLabel.widthInFrames()
-        channel    = pulsesToLabel.channel()
-        base       = pulsesToLabel.channelBases()
+        start      = self.zmw.pulseStartFrame [s:e]
+        width      = self.zmw.pulseWidth      [s:e]
+        channel    = self.zmw.pulseChannel    [s:e]
+        base       = self.zmw.pulseLabel      [s:e]
         mid        = start + width / 2.0
         try:
-            isBase     = pulsesToLabel.isBase()
+            isBase = self.zmw.pulseIsBase     [s:e]
         except BasecallsUnavailable:
             isBase = np.ones_like(channel, dtype=bool)
 
@@ -182,7 +135,9 @@ class PulsesOverlayItem(pg.GraphicsObject):
         # Draw the pulse blips
         p.drawPicture(0, 0, self.picture)
         # Draw pulse labels if the focus is small enough (< 500 frames)
-        self.labelPulses(self.pulsesToLabel())
+        pulseInterval = self.pulseIntervalToLabel()
+        if pulseInterval is not None:
+            self.labelPulses(*pulseInterval)
 
     def boundingRect(self):
         return QtCore.QRectF(self.picture.boundingRect())
