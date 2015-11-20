@@ -5,12 +5,6 @@ from pyqtgraph.Qt import QtCore, QtGui
 from PRmm.io import BasecallsUnavailable
 from PRmm.model import Region
 
-    def __repr__(self):
-        return "<Region: %s %7d %7d>" % (Region.typeNames[self.regionType],
-                                         self.startFrame,
-                                         self.endFrame)
-
-
 class RegionsOverlayItem(pg.GraphicsObject):
     """
     Region display
