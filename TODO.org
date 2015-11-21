@@ -1,42 +1,18 @@
-
-* Pulse display
-  - [X] Get the letters displaying
-  - [ ] Tooltip (so I can inspect LabelQV)
-
-* Input
-  - [X] Bas input
-  - [X] Aln input
-  - [X] Multipart
-  - [ ] DWIM mode
-  - [ ] input "interest list"
-
-* Regions
-  - [X] HQ region
-  - [X] Adapters
-  - [X] Alignments
-  - [ ] Overlay text label on alignment (accuracy)
-
-* Alignment display
-  This is actually not that difficult!
-
-* ROI
-  - [ ] Let the bottom show the entire read, with ROI box; top shows the zoom-in on the ROI
-
-* Plotting
-  Consider laying out a small square plot next to the "entire read" focus on the bottom
-
-  - [ ] Dotplot?
-  - [ ] 2C2A cluster plot
-
-* Maneuvering
-  - [ ] n/p for next/prev ZMW within interest list
-  - [ ] Arrow keys to scroll
-  - [ ] Key to zoom
-  - [ ] Key to navigate history
-  - [ ] Inertial scrolling
+* Display
+- [ ] Use right colors for 2C2A
+- [ ] Pulse overlay colors, widths for 2C2A
+- [ ] Mark pulse boundaries
 
 
+* Interface
+- [ ] Allow user to specify input one file at a time, or override fixture
+- [ ] Allow user to omit --hole in cmdline
+
+* Docs
+- [ ] Update README
+- [ ] Add screenshot
 
 
-* Factor out fixture/model
-* Make a RangeFinder class in the model that factors out storing the start/end arrays and the bisection.  Maybe even test it!
+* Engine
+- [ ] Add VirtualPolymerase reader
+- [ ] Add "pulse" BAM reader
