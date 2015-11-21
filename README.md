@@ -8,6 +8,13 @@ for data analysis from the perspective of a ZMW---providing simple
 access to the collated trace, pulsecall, basecall, and alignment data
 resulting from the ZMW.
 
+# Using the viewer
+
+    % prmm --help
+    
+
+# Using the model for data analysis
+
 The basic use concept for the model is:
 
   1. Load a "ReadersFixture", which consists of a collated set of
