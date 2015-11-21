@@ -137,7 +137,10 @@ class ReadersFixture(object):
 
     @property
     def holeNumbersWithAlignments(self):
-        raise Exception, "unimplemented"
+        if self.hasAlignments:
+            return sorted(set.intersection(set(self.holeNumbers), set(self.alnF.holeNumber)))
+        else:
+            return []
 
     def __getitem__(self, holeNumber):
         if holeNumber not in self.holeNumbers:
