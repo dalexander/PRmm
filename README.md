@@ -35,21 +35,21 @@ The basic use concept for the model is:
      a "ZmwFixture", which then gives convenient access to the trace
      and analysis data from that ZMW.
 
-       >>> zmw = readers[55]
+        >>> zmw = readers[55]
 
-       >>> zmw.cameraTrace
-       array([[  77.40115356,   58.53388214,   58.53388214, ...,   54.8108139 ,
-                 51.10409546,   51.10409546],
-              [ 104.56507874,   73.59329224,   88.93170166, ...,   66.02966309,
-                 58.53388214,   51.10409546], dtype=float32)
+        >>> zmw.cameraTrace
+        array([[  77.40115356,   58.53388214,   58.53388214, ...,   54.8108139 ,
+                  51.10409546,   51.10409546],
+               [ 104.56507874,   73.59329224,   88.93170166, ...,   66.02966309,
+                  58.53388214,   51.10409546], dtype=float32)
 
-       >>> zmw.basecalls
-       'AAACATATAACCATGATCAGTAGCTTCTATACAGACAACTAA...'
+        >>> zmw.basecalls
+        'AAACATATAACCATGATCAGTAGCTTCTATACAGACAACTAA...'
 
-       >>> z.regions  # Frame-delimited "regions"
-        [<Region:     INSERT    1239   73519>,
-         <Region:         HQ   22749  134882>,
-         <Region:  ALIGNMENT   24020   73356>,
-         <Region:    ADAPTER   73543   78439>,
-         <Region:     INSERT   78485  134882>,
-         <Region:  ALIGNMENT   86953  134882>]
+        >>> z.regions  # Frame-delimited "regions"
+         [<Region:     INSERT    1239   73519>,
+          <Region:         HQ   22749  134882>,
+          <Region:  ALIGNMENT   24020   73356>,
+          <Region:    ADAPTER   73543   78439>,
+          <Region:     INSERT   78485  134882>,
+          <Region:  ALIGNMENT   86953  134882>]
