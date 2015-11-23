@@ -3,6 +3,9 @@ import matplotlib
 import matplotlib.pyplot as plt
 import pandas as pd
 import math
+from intervaltree import IntervalTree
+
+from PRmm.model.regions import Region
 
 def alignmentDetailsReport(zmwFixture):
     pass
@@ -34,6 +37,18 @@ def plot2C2AScatterTimeSeries(zmwFixture, frameInterval=4096):
     details = "" # TODO
     fig.suptitle("%s\n%s" % (zmwFixture.zmwName, details), fontsize=20)
 
+
+    alnIntervals = IntervalTree()
+    for r in zmwFixture.regions:
+        if r.regionType == Region.ALIGNMENT_REGION:
+            alnIntervals.addi(r.startFrame, r.endFrame)
+
+    def overlapsAln(frameStart, frameEnd):
+        if alnIntervals.search(frameStart, frameEnd):
+            return True
+        else:
+            return False
+
     for i in xrange(numPanes):
         frameSpan = startFrame, endFrame = i*frameInterval, (i+1)*frameInterval
         axr[i].set_xlim(xmin, xmax)
@@ -43,6 +58,8 @@ def plot2C2AScatterTimeSeries(zmwFixture, frameInterval=4096):
         baseSpan = zmwFixture.baseIntervalFromFrames(*frameSpan)
         axr[i].text(fracX(0.1), fracY(0.9), "/%d_%d" %  baseSpan)
 
-        # alignment...
+        if overlapsAln(*frameSpan):
+            axr[i].hlines(fracY(1.0), xmin, xmax, colors=["red"], linewidth=4)
+
 
     return axr
