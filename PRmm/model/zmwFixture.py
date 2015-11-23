@@ -131,6 +131,10 @@ class ZmwFixture(object):
         return self._bases is not None
 
     @property
+    def numBases(self):
+        return len(self._bases)
+
+    @property
     def baseLabel(self):
         return self._bases.basecalls()
 
