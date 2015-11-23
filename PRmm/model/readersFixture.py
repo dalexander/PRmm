@@ -110,6 +110,10 @@ class ReadersFixture(object):
         return self.trcF.movieName
 
     @property
+    def frameRate(self):
+        return self.trcF.frameRate
+
+    @property
     def hasTraces(self):
         return self.trcF is not None
 

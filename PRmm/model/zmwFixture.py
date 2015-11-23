@@ -51,6 +51,10 @@ class ZmwFixture(object):
     def zmwName(self):
         return "%s/%d" % (self.readers.movieName, self.holeNumber)
 
+    @property
+    def frameRate(self):
+        return self.readers.frameRate
+
     # -- Trace info --
 
     @property
@@ -97,12 +101,22 @@ class ZmwFixture(object):
         return self._pulses.widthInFrames()
 
     @property
+    def prePulseFrames(self):
+        return self._pulses.prePulseFrames()
+
+    @property
     def pulsePkmid(self):
         return self._pulses.midSignal()
 
     @property
     def pulsePkmean(self):
+        # We are returning just the "active channel" pkmean here;
+        # pls.h5 files store all channels.
         return self._pulses.meanSignal()
+
+    @property
+    def pulseLabelQV(self):
+        return self._pulses.labelQV()
 
     @property
     def pulseIsBase(self):
@@ -144,6 +158,10 @@ class ZmwFixture(object):
     @property
     def multiAlignment(self):
         return MultiAlignment.fromAlnHits(self.baseLabel, self._alns)
+
+    @property
+    def alignments(self):
+        return self._alns
 
     # -- Regions info --
 
