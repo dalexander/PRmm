@@ -61,6 +61,12 @@ def alignmentFrameExtent(zmwFixture):
     aln = [r for r in rr if r.regionType == Region.ALIGNMENT_REGION][0]
     return (aln.startFrame, aln.endFrame)
 
+def hqFrameExtent(zmwFixture):
+    assert len(zmwFixture.alignments) == 1
+    rr = zmwFixture.regions
+    aln = [r for r in rr if r.regionType == Region.HQ_REGION][0]
+    return (aln.startFrame, aln.endFrame)
+
 def computeMetrics(zmwFixture, epochFrames=4096):
 
     holeNumber = zmwFixture.holeNumber
@@ -197,6 +203,7 @@ def plotMetrics(zmwFixture, epochFrames=4096):
     n_W = int(zmwFixture.numFrames / W_frames)
 
     alnExtent = np.array(alignmentFrameExtent(zmwFixture))/ W_frames
+    hqExtent  = np.array(hqFrameExtent(zmwFixture))/ W_frames
 
     details = "%d bp, %d bp @ %d%%, %d bp" %  \
               (a.rStart,
@@ -210,7 +217,12 @@ def plotMetrics(zmwFixture, epochFrames=4096):
         plt.plot(metrics.Epoch, metric, 'o')
         ax = plt.gca()
         ax.set_xlim(0, n_W)
-        plt.vlines(alnExtent, *ax.get_ylim(), linewidth=1)
+        ymin, ymax = ax.get_ylim()
+        #plt.vlines(alnExtent, *ax.get_ylim(), linewidth=1)
+        #plt.vlines(hqExtent,  *ax.get_ylim(), linewidth=1, color="red")
+        plt.hlines(ymax, alnExtent[0], alnExtent[1], linewidth=4, color="red")
+        plt.hlines(ymin, hqExtent[0],  hqExtent[1],  linewidth=4, color="black")
+
         plt.ylabel(desc)
 
     makeSubplot(1, metrics.HomopolymerContent, "Pulse homopolymer content")
