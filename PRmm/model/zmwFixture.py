@@ -2,7 +2,7 @@ import numpy as np
 from functools import wraps
 from bisect import bisect_left, bisect_right
 
-from PRmm.model import Region, MultiAlignment
+from PRmm.model import Region, Regions, MultiAlignment
 
 def cached(f):
     """
@@ -174,6 +174,7 @@ class ZmwFixture(object):
         return self.hasBases and self.hasPulses
 
     @property
+    @cached
     def regions(self):
         """
         Get region info---FRAME delimited
@@ -196,7 +197,7 @@ class ZmwFixture(object):
                     ans.append(Region(Region.ALIGNMENT_REGION,
                                  self.baseStartFrame[aln.rStart],
                                  self.baseEndFrame[aln.rEnd-1]))
-            return sorted(ans)
+            return Regions(sorted(ans))
 
     # -- Interval queries --
 
