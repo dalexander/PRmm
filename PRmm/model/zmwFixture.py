@@ -183,8 +183,12 @@ class ZmwFixture(object):
         else:
             ans = []
             for basRegion in self._bases.zmw.regionTable:
-                startFrame = self.baseStartFrame[basRegion.regionStart]
-                endFrame = self.baseEndFrame[basRegion.regionEnd-1] # TODO: check this logic
+                # FIXME: hacky workaround for bam2bax breakage
+                if basRegion.regionStart == basRegion.regionEnd:
+                    startFrame = endFrame = 0
+                else:
+                    startFrame = self.baseStartFrame[basRegion.regionStart]
+                    endFrame = self.baseEndFrame[basRegion.regionEnd-1] # TODO: check this logic
                 ans.append(Region(basRegion.regionType, startFrame, endFrame))
             # Are there alignments?
             if self.hasAlignments:
