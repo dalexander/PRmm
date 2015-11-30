@@ -210,7 +210,11 @@ def plotMetrics(zmwFixture, epochFrames=4096):
                a.rEnd  - a.rStart, 100*a.identity,
                zmwFixture.numBases - a.rEnd)
 
-    plt.figure(figsize=(12,10))
+    fig = plt.figure(figsize=(12,10))
+    red_patch = matplotlib.patches.Patch(color='red', label="Alignment")
+    black_patch = matplotlib.patches.Patch(color='black', label="HQ region")
+    fig.legend([red_patch, black_patch], ["Alignment", "HQ region"], "upper right")
+
 
     def makeSubplot(pane, metric, desc):
         plt.subplot(3, 2, pane)
