@@ -167,6 +167,12 @@ class ZmwFixture(object):
     def alignments(self):
         return self._alns
 
+    @property
+    def alignment(self):
+        if len(self._alns) != 1:
+            raise Exception, "Expecting a (single) alignment!"
+        return self._alns[0]
+
     # -- Regions info --
 
     @property
