@@ -15,7 +15,7 @@ class VirtualPolymeraseBamReader(object):
             scrapsFname = subreadsFname.replace("subreads.bam", "scraps.bam")
         self.subreadsF = IndexedBamReader(subreadsFname)
         self.scrapsF   = IndexedBamReader(scrapsFname)
-        if (len(self.subreadsF.movieNames) > 0 or
+        if (len(self.subreadsF.movieNames) != 1 or
             self.scrapsF.movieNames != self.subreadsF.movieNames):
             raise Exception, "Requires single movie BAM file, and matching scraps"
 
@@ -25,7 +25,7 @@ class VirtualPolymeraseBamReader(object):
 
     @property
     def holeNumbers(self):
-        return self.subreadsF.holeNumber
+        return sorted(set(self.subreadsF.holeNumber))
 
     def __getitem__(self, holeNumber):
         subreads = self.subreadsF.readsByHoleNumber(holeNumber)
@@ -49,30 +49,25 @@ def concatenateRecordArrayTags(tag, records):
     pass
 
 def concatenateRecordStringTags(tag, records):
-    val = ""
-    for r in records:
-        val = val + r.peer.get_tag(tag)
-    return val
+    return "".join(r.peer.get_tag(tag)
+                   for r in records)
 
-
-def concatenateRecordTags(tag, records):
-    assert len(records) > 0
-    if records
-    for record in
+def concatenatingRecordAccessor(tag, tagType):
+    if tagType == "Z":
+        pass
+    else:
+        raise Exception, "unimplemented"
 
 
 class VirtualPolymeraseZmw(object):
 
     def __init__(self, bamRecords):
-        if recordsFormReadPartition(bamRecords):
+        if not recordsFormReadPartition(bamRecords):
             raise Exception, "Records do not form a contiguous span of a ZMW!"
         self.bamRecords = bamRecords
 
     def readNoQC(self):
         return self
 
-
-
-
-fname = "~/Data/pbcore/m140905_042212_sidney_c100564852550000001823085912221377_s1_X0.subreads.bam"
-V = VirtualPolymeraseBamReader(fname)
+    def basecalls(self):
+        return "".join(r.peer.seq for r in self.bamRecords)
