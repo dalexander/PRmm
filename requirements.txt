@@ -1,0 +1,3 @@
+-r requirements-headless.txt
+PyQt4
+pyqtgraph

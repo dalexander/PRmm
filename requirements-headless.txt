@@ -1,0 +1,3 @@
+pbcore
+numpy
+h5py
