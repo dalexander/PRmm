@@ -171,7 +171,7 @@ def main():
     elif args["fromIni"]:
         fx = ReadersFixture.fromIniFile(args["<iniFile>"], args["<sectionName>"])
     else:
-        print "Bad command"
+        print >> sys.stderr, "Bad command"
         return -1
     print fx
 
