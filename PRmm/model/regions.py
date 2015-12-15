@@ -3,13 +3,15 @@ __all__ = [ "Region", "Regions" ]
 class Region(object):
     """
     A region, in *frame* coordinates
-
-    TODO: move this logic under fixture!
     """
     # These agree with regions enum defined for bas/bax files
     ADAPTER_REGION = 0
     INSERT_REGION  = 1
     HQ_REGION      = 2
+
+    # This is new.
+    BARCODE_REGION = 3
+
     # This is new
     ALIGNMENT_REGION = 101
 
