@@ -8,9 +8,11 @@ from pbcore.io import IndexedBamReader
 from pbcore.io.align._BamSupport import codeToFrames
 
 from PRmm.model.utils import cached
+from PRmm.model import Region
 
 import numpy as np
-from collections import namedtuple
+from intervaltree import Interval, IntervalTree
+from collections import namedtuple, defaultdict
 
 
 
@@ -27,6 +29,17 @@ PULSE_FEATURE_DESCS = [ PulseFeatureDesc("preBaseFrames"     , "Ipd:Frames"     
 
 _possibleFeatureManifestNames = set([ pd.nameInManifest
                                       for pd in PULSE_FEATURE_DESCS ])
+
+
+
+def toRecArray(dtype, arr):
+    return np.rec.array(arr, dtype=dtype).flatten()
+
+REGION_TABLE_DTYPE = [("holeNumber",  np.int32),
+                      ("regionType",  np.int32),
+                      ("regionStart", np.int32),
+                      ("regionEnd",   np.int32),
+                      ("regionScore", np.int32) ]
 
 
 class Decoders(object):
@@ -120,6 +133,16 @@ def concatenateRecordStringTags(tag, records):
                    for r in records)
 
 
+
+def _preciseReadType(bamRecord):
+    readType = bamRecord.readType
+    if readType == "SCRAP":
+        scrapDetail = ":%s" % bamRecord.scrapType
+    else:
+        scrapDetail = ""
+    return readType + scrapDetail
+
+
 class VirtualPolymeraseZmw(object):
 
     def __init__(self, reader, bamRecords):
@@ -127,6 +150,13 @@ class VirtualPolymeraseZmw(object):
             raise Exception, "Records do not form a contiguous span of a ZMW!"
         self.reader = reader
         self.bamRecords = bamRecords
+
+    def __len__(self):
+        return max(r.qEnd for r in self.bamRecords)
+
+    @property
+    def holeNumber(self):
+        return self.bamRecords[0].holeNumber
 
     def readNoQC(self):
         return self
@@ -141,12 +171,48 @@ class VirtualPolymeraseZmw(object):
         decoded = decode(cat)
         return decoded
 
+    @property
+    def regionTable(self):
+        """
+        Get the "region table", a table indicating
+        *base*-coordinate-delimited regions, using the same recarray
+        dtype that is returned by BasH5Reader.
 
-# def _makeFeatureAccessor(featureDesc):
-#     def accessFeature(zmw):
-#         return "here's your feature from ", featureDesc.nameInManifest
+        *Note* that the regiontable from the VirtualPolymeraseZmw will
+        not in general be equivalent to that from a bas.h5, if the BAM
+        files were produced using bax2bam, because in our BAM
+        encodings, a subread or adapter cannot extend beyond the HQ
+        region.  Additionally there is no concept of a "region score"
+        for the BAM.
+        """
+        polymeraseReadExtent = Interval(0, len(self))
+        intervalsByType = defaultdict(list)
+        for r in self.bamRecords:
+            intervalsByType[_preciseReadType(r)].append(Interval(r.qStart, r.qEnd))
 
-#     return property(accessFeature)
+        # Find an HQ region
+        hqIntervalTree = IntervalTree([polymeraseReadExtent])
+        for lqInterval in intervalsByType["SCRAP:L"]:
+            hqIntervalTree.chop(*lqInterval)
+        hqIntervals = list(hqIntervalTree)
+        assert len(hqIntervals) in (0, 1)
+        if len(hqIntervals) == 0:
+            hqInterval = Interval(0, 0)
+        else:
+            hqInterval = hqIntervals[0]
+        hqRegion = (self.holeNumber, Region.HQ_REGION, hqInterval.begin, hqInterval.end, 0)
 
-# for name in
-#     setattr(VirtualPolymeraseZmw, name, 2)
+        # Adapters, barcodes, and inserts (and filtered inserts)
+        print intervalsByType
+        regionTypeMap = { "SUBREAD" : Region.INSERT_REGION,
+                          "SCRAP:A" : Region.ADAPTER_REGION,
+                          "SCRAP:B" : Region.BARCODE_REGION,
+                          "SCRAP:F" : Region.INSERT_REGION }
+
+        regions = [ hqRegion ] + \
+                  [ (self.holeNumber, regionTypeMap[code], interval.begin, interval.end, 0)
+                    for code in regionTypeMap
+                    for interval in intervalsByType[code] ]
+
+        # TODO: add in the hq region, and reformat to be the same dtype as in BasH5Reader
+        return toRecArray(REGION_TABLE_DTYPE, regions)
