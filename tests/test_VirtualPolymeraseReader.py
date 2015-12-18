@@ -32,4 +32,30 @@ class TestVirtualPolymeraseReader(object):
         AEQ(downsampleFrames(baxPBF), vpPBF)
 
     def test_regionTable(self):
-        AEQ(self.VZ.regionTable, self.BZ.regionTable)
+        # don't test the region table--they aren't equal.  but the
+        # clipped-to-hq regions *are* equal
+        AEQ(self.VZ.adapterRegions, self.BZ.adapterRegions)
+        AEQ(self.VZ.insertRegions,  self.BZ.insertRegions)
+        AEQ(self.VZ.hqRegion,       self.BZ.hqRegion)
+
+
+    def test_regionTable_allZmws(self):
+        for hn in self.B.allSequencingZmws:
+
+            if hn == 49050:
+                # hn 49050 exposes the fact that the way bax2bam works
+                # does not respect the "insert" annotations in the
+                # region table, it just takes the intervals within the
+                # HQ region that fall between adapters.  This may or
+                # not be the desired behavior... Lance had a reason
+                # for doing it that way, I think based on the fact
+                # that this was the way it was done in the C#
+                # codebase, and it had some perceived advantage.
+                # Maybe revisit that behavior.
+                continue
+
+            BZ = self.B[hn]
+            VZ = self.V[hn]
+            AEQ(BZ.adapterRegions, VZ.adapterRegions)
+            AEQ(BZ.hqRegion, VZ.hqRegion)
+            AEQ(BZ.insertRegions, VZ.insertRegions)

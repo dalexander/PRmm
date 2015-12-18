@@ -6,6 +6,7 @@ __all__ = [ "VirtualPolymeraseBamReader" ]
 
 from pbcore.io import IndexedBamReader
 from pbcore.io.align._BamSupport import codeToFrames
+from pbcore.model import BaseRegionsMixin
 
 from PRmm.model.utils import cached
 from PRmm.model import Region
@@ -143,7 +144,7 @@ def _preciseReadType(bamRecord):
     return readType + scrapDetail
 
 
-class VirtualPolymeraseZmw(object):
+class VirtualPolymeraseZmw(BaseRegionsMixin):
 
     def __init__(self, reader, bamRecords):
         if not recordsFormReadPartition(bamRecords):
@@ -203,7 +204,6 @@ class VirtualPolymeraseZmw(object):
         hqRegion = (self.holeNumber, Region.HQ_REGION, hqInterval.begin, hqInterval.end, 0)
 
         # Adapters, barcodes, and inserts (and filtered inserts)
-        print intervalsByType
         regionTypeMap = { "SUBREAD" : Region.INSERT_REGION,
                           "SCRAP:A" : Region.ADAPTER_REGION,
                           "SCRAP:B" : Region.BARCODE_REGION,
@@ -214,5 +214,4 @@ class VirtualPolymeraseZmw(object):
                     for code in regionTypeMap
                     for interval in intervalsByType[code] ]
 
-        # TODO: add in the hq region, and reformat to be the same dtype as in BasH5Reader
         return toRecArray(REGION_TABLE_DTYPE, regions)
