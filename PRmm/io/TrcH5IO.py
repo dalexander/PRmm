@@ -12,7 +12,7 @@ class HoleStatus(object):
 
 class TrxH5Reader(object):
     """
-    Reader for trx.h5 files
+    Reader for single-part trace files
     """
     class LutCodec(object):
         def __init__(self, lut):
@@ -30,6 +30,7 @@ class TrxH5Reader(object):
             return arr
 
     def __init__(self, fname):
+        assert fname.endswith(".trx.h5") or fname.endswith(".trc.h5")
         self.filename = op.abspath(op.expanduser(fname))
         self.file = h5py.File(self.filename, "r")
         self._traceData = self.file["/TraceData/Traces"]
@@ -98,6 +99,9 @@ class TrxH5Reader(object):
 
 
 class TrcH5Reader(MultipartReader):
+    """
+    Reader for single-part or multipart trace files
+    """
     PART_READER_CLASS = TrxH5Reader
 
     @property

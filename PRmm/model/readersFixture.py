@@ -40,60 +40,35 @@ class ReadersFixture(object):
         if self.trcF is None:
             raise ValueError, "trc.h5 required, for now"
 
-
-    @staticmethod
-    def fromSecondaryJobPath(jobPath):
-        # reckon the reports path from the input fofn ...
-        reportsPaths = set([ updir(path) for path in readFofn(op.join(jobPath, "input.fofn"))])
-        if len(reportsPaths) > 1:
-            raise ValueError, "No support for multi-movie jobs yet"
-        else:
-            reportsPath = list(reportsPaths)[0]
-            return ReadersFixture.fromPaths(reportsPath, jobPath)
-
-    @staticmethod
-    def fromPaths(reportsPath, secondaryJobPath=None):
-        basFname = findOneOrNone("*.bas.h5", reportsPath)
-        plsFname = findOneOrNone("*.pls.h5", reportsPath)
-        trcFname = findOneOrNone("*.trc.h5", updir(reportsPath))
-        if secondaryJobPath:
-            alnFname = findOneOrNone("*.cmp.h5", op.join(secondaryJobPath, "data"))
-        else:
-            alnFname = None
-        return ReadersFixture(trcFname=trcFname, plsFname=plsFname,
-                              basFname=basFname, alnFname=alnFname)
-
-    @staticmethod
-    def fromTraceSplitPaths(reportsPath, secondaryJobPath=None):
-        # ARGGH!
-        trcFnames = find("*split*.trc.h5", op.join(updir(reportsPath), "traceSplit"))
-        trcFofn = tempfile.NamedTemporaryFile(suffix=".trc.fofn", delete=False)
-        for fname in trcFnames:
-            trcFofn.file.write(fname)
-            trcFofn.file.write("\n")
-        trcFofn.close()
-        basFname = findOneOrNone("*.bas.h5", reportsPath)
-        plsFname = findOneOrNone("*.pls.h5", reportsPath)
-        if secondaryJobPath:
-            alnFname = findOneOrNone("*.cmp.h5", op.join(secondaryJobPath, "data"))
-        else:
-            alnFname = None
-        return ReadersFixture(trcFname=trcFofn.name, plsFname=plsFname,
-                              basFname=basFname, alnFname=alnFname)
-
     @staticmethod
     def fromIniFile(iniFilename, sectionName):
         iniFilename = op.abspath(op.expanduser(iniFilename))
+
+        def resolvePath(path):
+            """
+            Path may be given
+              - as relative to the ini file path
+              - qualified with "~"
+            Resolve it whatever it is.
+            None is passed through.
+            """
+            if path is None: return None
+            iniDirectory = op.dirname(iniFilename)
+            path = op.expanduser(path)
+            if op.isabs(path):
+                return path
+            else:
+                return op.abspath(op.join(iniDirectory, path))
+
         cp = ConfigParser()
         cp.optionxform=str
         cp.read(iniFilename)
         opts = dict(cp.items(sectionName))
-        return ReadersFixture(trcFname=opts.get("Traces"),
-                              plsFname=opts.get("Pulses"),
-                              basFname=opts.get("Bases"),
-                              alnFname=opts.get("Alignments"))
-
-
+        return ReadersFixture(trcFname=resolvePath(opts.get("Traces")),
+                              plsFname=resolvePath(opts.get("Pulses")),
+                              basFname=resolvePath(opts.get("Bases")),
+                              refFname=resolvePath(opts.get("Reference")),
+                              alnFname=resolvePath(opts.get("Alignments")))
 
     def __repr__(self):
         import pprint
@@ -157,22 +132,12 @@ class ReadersFixture(object):
 __doc__ = \
 """
 Usage:
-  fixture.py fromSecondaryJobPath <secondaryJobPath>
-  fixture.py fromPaths <reportsPath> <secondaryJobPath>
-  fixture.py fromIni <iniFile> <sectionName>
+  fixture.py <iniFile> <sectionName>
 """
 
 def main():
     args = docopt(__doc__)
-    if args["fromSecondaryJobPath"]:
-        fx = ReadersFixture.fromSecondaryJobPath(args["<secondaryJobPath>"])
-    elif args["fromPaths"]:
-        fx = ReadersFixture.fromPaths(args["<reportsPath>"], args["<secondaryJobPath>"])
-    elif args["fromIni"]:
-        fx = ReadersFixture.fromIniFile(args["<iniFile>"], args["<sectionName>"])
-    else:
-        print >> sys.stderr, "Bad command"
-        return -1
+    fx = ReadersFixture.fromIniFile(args["<iniFile>"], args["<sectionName>"])
     print fx
 
 if __name__ == '__main__':
