@@ -81,6 +81,15 @@ class ReadersFixture(object):
     # -- Essential info ---
 
     @property
+    def platform(self):
+        if self.trcF.numChannels == 2:
+            return "Sequel"
+        elif self.trcF.numChannels == 4:
+            return "RS"
+        else:
+            raise Exception, "unrecognized platform"
+
+    @property
     def movieName(self):
         return self.trcF.movieName
 

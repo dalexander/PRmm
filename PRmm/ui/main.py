@@ -9,6 +9,8 @@ from pyqtgraph.Qt import QtCore, QtGui
 from PRmm.ui.overlays import *
 from PRmm.ui.tracePlot import *
 from PRmm.ui.alignmentView import *
+from PRmm.ui.styles import *
+
 from PRmm.model import *
 
 def debug_trace():
@@ -26,6 +28,7 @@ class TraceViewer(QtGui.QMainWindow):
         """
         super(TraceViewer, self).__init__()
         self.readers = readers
+        self.style = styleForData(self.readers)
         self.zmw = None
         self.initUI()
 
@@ -56,10 +59,10 @@ class TraceViewer(QtGui.QMainWindow):
     def renderTrace(self, traceData):
         numChannels = traceData.shape[0]
         for i in xrange(numChannels):
-            self.plot1.plot(traceData[i,:], pen=(i,numChannels))
+            self.plot1.plot(traceData[i,:], pen=self.style.tracePens[i])
 
     def renderPulses(self):
-        self.plot1.addItem(PulsesOverlayItem(self.zmw, self.plot1))
+        self.plot1.addItem(PulsesOverlayItem(self.zmw, self.plot1, self.style))
 
 
     def renderRegions(self):

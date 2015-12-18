@@ -56,10 +56,11 @@ class PulsesOverlayItem(pg.GraphicsObject):
     """
     The pulses!
     """
-    def __init__(self, zmwFixture, plot):
+    def __init__(self, zmwFixture, plot, style):
         pg.GraphicsObject.__init__(self)
         self.zmw = zmwFixture
         self.plot = plot
+        self.style = style
         self.generatePicture()
         self._textItems = []
 
@@ -77,14 +78,13 @@ class PulsesOverlayItem(pg.GraphicsObject):
 
         self.picture = QtGui.QPicture()
         p = QtGui.QPainter(self.picture)
-        pens  = [ pg.mkPen((i, 4), width=2) for i in xrange(4) ]
         y = -5
         for i in xrange(len(channel)):
             c     = channel[i]
             start = startFrame[i]
             width = widthInFrames[i]
             end = start + width
-            p.setPen(pens[c])
+            p.setPen(self.style.pulseOverlayPens[c])
             p.drawLine(QtCore.QPointF(start, y), QtCore.QPointF(start+width, y))
 
     def pulseIntervalToLabel(self):
