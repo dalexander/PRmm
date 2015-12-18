@@ -160,7 +160,10 @@ class VirtualPolymeraseZmw(BaseRegionsMixin):
         return self.bamRecords[0].holeNumber
 
     def readNoQC(self):
-        return self
+        raise NotImplementedError()
+
+    def read(self):
+        raise NotImplementedError()
 
     def basecalls(self):
         return "".join(r.peer.seq for r in self.bamRecords)
