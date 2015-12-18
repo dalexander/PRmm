@@ -18,20 +18,20 @@ from collections import namedtuple, defaultdict
 
 
 # This duplicates stuff we have already in pbcore.  Unify?
-PulseFeatureDesc = namedtuple("PulseFeatureDesc",
-                              ("accessorName", "nameInManifest", "tagName", "decoder", "encodedDtype", "decodedDtype"))
+PulseFeatureDesc = \
+    namedtuple("PulseFeatureDesc",
+               ("accessorName", "nameInManifest", "tagName", "decoder", "encodedDtype", "decodedDtype"))
 
 
-PULSE_FEATURE_DESCS = [ PulseFeatureDesc("preBaseFrames"     , "Ipd:Frames"        , "ip", "identity", np.uint16, np.uint16),
-                        PulseFeatureDesc("preBaseFrames"     , "Ipd:CodecV1"       , "ip", "codecV1",  np.uint8,  np.uint16),
-                        PulseFeatureDesc("baseWidthInFrames" , "PulseWidth:Frames" , "pw", "identity", np.uint16, np.uint16),
-                        PulseFeatureDesc("baseWidthInFrames" , "PulseWidth:CodecV1", "pw", "codecV1",  np.uint8,  np.uint16) ]
+PULSE_FEATURE_DESCS = \
+ [ PulseFeatureDesc("preBaseFrames"     , "Ipd:Frames"        , "ip", "identity", np.uint16, np.uint16),
+   PulseFeatureDesc("preBaseFrames"     , "Ipd:CodecV1"       , "ip", "codecV1",  np.uint8,  np.uint16),
+   PulseFeatureDesc("baseWidthInFrames" , "PulseWidth:Frames" , "pw", "identity", np.uint16, np.uint16),
+   PulseFeatureDesc("baseWidthInFrames" , "PulseWidth:CodecV1", "pw", "codecV1",  np.uint8,  np.uint16) ]
 
 
 _possibleFeatureManifestNames = set([ pd.nameInManifest
                                       for pd in PULSE_FEATURE_DESCS ])
-
-
 
 def toRecArray(dtype, arr):
     return np.rec.array(arr, dtype=dtype).flatten()
