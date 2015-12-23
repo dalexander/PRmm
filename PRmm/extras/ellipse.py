@@ -3,8 +3,7 @@ import numpy as np
 
 def covarianceEllipse(mean, covar, scale=1.0):
     eval, evec = np.linalg.eig(covar)
-    angles = np.degrees(np.arctan2(evec[1,:], evec[0,:]))
-    #print angles
+    angles = np.degrees(np.arctan(evec[1,:] / evec[0,:]))
     q1 = np.flatnonzero((angles >= 0) & (angles < 90))[0]
     q2 = 1 - q1
     q1Angle = angles[q1]
@@ -17,9 +16,16 @@ def covarianceEllipse(mean, covar, scale=1.0):
     e.set_alpha(1.0)
     e.set_lw(2)
     e.set_ls("dashed")
-    #plt.arrow(mean[0], mean[1], evec[0,0], evec[1,0])
-    #plt.arrow(mean[0], mean[1], evec[0,1], evec[1,1])
     return e
+
+def covarianceEllipse3(mean, covar3, scale=1.0):
+    # Take cov as [s_x, s_y, s_xy]
+    covar = np.zeros(shape=(2,2))
+    covar[0,0] = covar3[0]
+    covar[1,1] = covar3[1]
+    covar[0,1] = covar3[2]
+    covar[1,0] = covar3[2]
+    return covarianceEllipse(mean, covar, scale)
 
 def demo():
     from matplotlib import pyplot as plt
