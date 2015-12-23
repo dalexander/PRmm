@@ -18,9 +18,10 @@ def plot2C2AScatterTimeSeries(zmwFixture, frameInterval=4096):
     t = zmwFixture.cameraTrace
     df = pd.DataFrame(np.transpose(t), columns=["C1", "C2"])
 
-    # what is the extent of the data?
-    xmin, ymin = df.min()
-    xmax, ymax = df.max()
+    # what is the extent of the data?  force a square perspective so
+    # we don't distort the spectral angle
+    xmin = ymin = min(df.min())
+    xmax = ymax = max(df.max())
 
     def fracX(frac): return xmin + (xmax - xmin) * frac
     def fracY(frac): return ymin + (ymax - ymin) * frac
@@ -30,8 +31,9 @@ def plot2C2AScatterTimeSeries(zmwFixture, frameInterval=4096):
     numRows = int(math.ceil(float(numPanes) / numCols))
     paneSize = np.array([3, 3])
 
-    matplotlib.rcParams['figure.figsize'] = np.array([numCols, numRows]) * paneSize
-    fig, ax = plt.subplots(numRows, numCols, sharex=True, sharey=True, )
+    figsize = np.array([numCols, numRows]) * paneSize
+    fig, ax = plt.subplots(numRows, numCols, sharex=True, sharey=True,
+                           figsize=figsize)
     axr = ax.ravel()
 
     details = "" # TODO
@@ -56,7 +58,7 @@ def plot2C2AScatterTimeSeries(zmwFixture, frameInterval=4096):
         axr[i].plot(df.C1[startFrame:endFrame], df.C2[startFrame:endFrame], ".")
 
         baseSpan = zmwFixture.baseIntervalFromFrames(*frameSpan)
-        axr[i].text(fracX(0.1), fracY(0.9), "/%d_%d" %  baseSpan)
+        axr[i].text(fracX(0.6), fracY(0.9), "/%d_%d" %  baseSpan)
 
         if overlapsAln(*frameSpan):
             axr[i].hlines(fracY(1.0), xmin, xmax, colors=["red"], linewidth=4)
