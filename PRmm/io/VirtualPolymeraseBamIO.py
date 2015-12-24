@@ -150,7 +150,8 @@ class VirtualPolymeraseZmw(BaseRegionsMixin):
         self.reader = reader
         self.bamRecords = bamRecords
 
-    def __len__(self):
+    @property
+    def polymeraseReadLength(self):
         return max(r.qEnd for r in self.bamRecords)
 
     @property
@@ -187,7 +188,7 @@ class VirtualPolymeraseZmw(BaseRegionsMixin):
         region.  Additionally there is no concept of a "region score"
         for the BAM.
         """
-        polymeraseReadExtent = Interval(0, len(self))
+        polymeraseReadExtent = Interval(0, self.polymeraseReadLength)
         intervalsByType = defaultdict(list)
         for r in self.bamRecords:
             intervalsByType[_preciseReadType(r)].append(Interval(r.qStart, r.qEnd))
