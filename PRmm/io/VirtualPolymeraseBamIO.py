@@ -79,7 +79,7 @@ class VirtualPolymeraseBamReader(object):
 
     @property
     def hasPulses(self):
-        pass
+        raise NotImplementedError()
 
     @property
     @cached
@@ -151,6 +151,21 @@ class VirtualPolymeraseZmw(BaseRegionsMixin):
         self.bamRecords = bamRecords
 
     @property
+    @cached
+    def _features(self):
+        """
+        The assembled features, as a dict
+        """
+        _features = { "basecalls" : "".join(r.peer.seq for r in self.bamRecords) }
+        for featureName in self.reader.pulseFeatureDescs:
+            desc = self.reader.pulseFeatureDescs[featureName]
+            decode = Decoders.byName(desc.decoder)
+            cat = _concatenateRecordArrayTags(desc.tagName, desc.encodedDtype, self.bamRecords)
+            decoded = decode(cat)
+            _features[featureName] = decoded
+        return _features
+
+    @property
     def polymeraseReadLength(self):
         return max(r.qEnd for r in self.bamRecords)
 
@@ -158,21 +173,23 @@ class VirtualPolymeraseZmw(BaseRegionsMixin):
     def holeNumber(self):
         return self.bamRecords[0].holeNumber
 
-    def readNoQC(self):
+    def readNoQC(self, qStart=None, qEnd=None):
+        """
+        ... ref to bash5 method
+        """
+        if qEnd is None and qStart is not None:
+            raise ValueError, "Must specify both args, or neither"
+        elif qStart is None:
+            qStart = 0
+            qEnd = self.polymeraseReadLength
+        return VirtualPolymeraseZmwRead(self, qStart, qEnd)
+
+
+    def read(self, rStart=None, rEnd=None):
+        """
+        ... ref to bash5 method
+        """
         raise NotImplementedError()
-
-    def read(self):
-        raise NotImplementedError()
-
-    def basecalls(self):
-        return "".join(r.peer.seq for r in self.bamRecords)
-
-    def preBaseFrames(self):
-        desc = self.reader.pulseFeatureDescs["preBaseFrames"]
-        decode = Decoders.byName(desc.decoder)
-        cat = _concatenateRecordArrayTags(desc.tagName, desc.encodedDtype, self.bamRecords)
-        decoded = decode(cat)
-        return decoded
 
     @property
     def regionTable(self):
@@ -217,3 +234,18 @@ class VirtualPolymeraseZmw(BaseRegionsMixin):
                     for interval in intervalsByType[code] ]
 
         return toRecArray(REGION_TABLE_DTYPE, regions)
+
+
+
+class VirtualPolymeraseZmwRead(object):
+
+    def __init__(self, zmw, qStart, qEnd):
+        self.zmw = zmw
+        self.qStart = qStart
+        self.qEnd = qEnd
+
+    def basecalls(self):
+        return self.zmw._features["basecalls"][self.qStart:self.qEnd]
+
+    def preBaseFrames(self):
+        return self.zmw._features["preBaseFrames"][self.qStart:self.qEnd]

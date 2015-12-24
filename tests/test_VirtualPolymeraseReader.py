@@ -21,12 +21,12 @@ class TestVirtualPolymeraseReader(object):
         self.BZ = self.B[1650]
 
     def test_basecalls(self):
-        vpBasecalls = self.VZ.basecalls()
+        vpBasecalls = self.VZ.readNoQC().basecalls()
         baxBasecalls = self.BZ.readNoQC().basecalls()
         EQ(baxBasecalls, vpBasecalls)
 
     def test_preBaseFrames(self):
-        vpPBF = self.VZ.preBaseFrames()
+        vpPBF = self.VZ.readNoQC().preBaseFrames()
         baxPBF = self.BZ.readNoQC().IPD()
         # This will be equivalent up to the lossy encoding scheme of the kinetics
         AEQ(downsampleFrames(baxPBF), vpPBF)
