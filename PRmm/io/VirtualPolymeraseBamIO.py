@@ -113,7 +113,7 @@ class VirtualPolymeraseBamReader(object):
         return self.subreadsF.readGroupTable[0].FrameRate
 
 
-def recordsFormReadPartition(records):
+def _recordsFormReadPartition(records):
     """
     check that the records are contiguous in read space, starting at 0
     """
@@ -124,16 +124,14 @@ def recordsFormReadPartition(records):
     return True
 
 
-def concatenateRecordArrayTags(tag, dtype, records):
+def _concatenateRecordArrayTags(tag, dtype, records):
     parts = [ np.array(r.peer.get_tag(tag), dtype=dtype)
               for r in records ]
     return np.hstack(parts)
 
-def concatenateRecordStringTags(tag, records):
+def _concatenateRecordStringTags(tag, records):
     return "".join(r.peer.get_tag(tag)
                    for r in records)
-
-
 
 def _preciseReadType(bamRecord):
     readType = bamRecord.readType
@@ -147,7 +145,7 @@ def _preciseReadType(bamRecord):
 class VirtualPolymeraseZmw(BaseRegionsMixin):
 
     def __init__(self, reader, bamRecords):
-        if not recordsFormReadPartition(bamRecords):
+        if not _recordsFormReadPartition(bamRecords):
             raise Exception, "Records do not form a contiguous span of a ZMW!"
         self.reader = reader
         self.bamRecords = bamRecords
@@ -171,7 +169,7 @@ class VirtualPolymeraseZmw(BaseRegionsMixin):
     def preBaseFrames(self):
         desc = self.reader.pulseFeatureDescs["preBaseFrames"]
         decode = Decoders.byName(desc.decoder)
-        cat = concatenateRecordArrayTags(desc.tagName, desc.encodedDtype, self.bamRecords)
+        cat = _concatenateRecordArrayTags(desc.tagName, desc.encodedDtype, self.bamRecords)
         decoded = decode(cat)
         return decoded
 
