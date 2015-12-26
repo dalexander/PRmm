@@ -92,7 +92,7 @@ class VirtualPolymeraseBamReader(object):
         subreads = self.subreadsF.readsByHoleNumber(holeNumber)
         scraps = self.scrapsF.readsByHoleNumber(holeNumber)
         combined = sorted(subreads + scraps, key=lambda x: x.qStart)
-        return VirtualPolymeraseZmw(self, combined)
+        return VirtualPolymeraseZmw(self, holeNumber, combined)
 
     @property
     @cached
@@ -144,17 +144,28 @@ def _preciseReadType(bamRecord):
 
 class VirtualPolymeraseZmw(BaseRegionsMixin):
 
-    def __init__(self, reader, bamRecords):
+    def __init__(self, reader, hn, bamRecords):
         if not _recordsFormReadPartition(bamRecords):
             raise Exception, "Records do not form a contiguous span of a ZMW!"
         self.reader = reader
+        self.holeNumber = hn
         self.bamRecords = bamRecords
+        assert self.bamRecords[0].holeNumber == hn
+
+    @property
+    def zmwName(self):
+      return "%s/%d" % (self.reader.movieName,
+                        self.holeNumber)
+
+    def __repr__(self):
+        return "<%s: %s>" % (self.__class__.__name__,
+                             self.zmwName)
 
     @property
     @cached
-    def _features(self):
+    def _baseFeatures(self):
         """
-        The assembled features, as a dict
+        The assembled base features, as a dict
         """
         _features = { "basecalls" : "".join(r.peer.seq for r in self.bamRecords) }
         for featureName in self.reader.pulseFeatureDescs:
@@ -166,12 +177,9 @@ class VirtualPolymeraseZmw(BaseRegionsMixin):
         return _features
 
     @property
+    @cached
     def polymeraseReadLength(self):
         return max(r.qEnd for r in self.bamRecords)
-
-    @property
-    def holeNumber(self):
-        return self.bamRecords[0].holeNumber
 
     def readNoQC(self, qStart=None, qEnd=None):
         """
@@ -192,6 +200,7 @@ class VirtualPolymeraseZmw(BaseRegionsMixin):
         raise NotImplementedError()
 
     @property
+    @cached
     def regionTable(self):
         """
         Get the "region table", a table indicating
@@ -239,13 +248,32 @@ class VirtualPolymeraseZmw(BaseRegionsMixin):
 
 class VirtualPolymeraseZmwRead(object):
 
+    # slots
+
     def __init__(self, zmw, qStart, qEnd):
         self.zmw = zmw
         self.qStart = qStart
         self.qEnd = qEnd
 
     def basecalls(self):
-        return self.zmw._features["basecalls"][self.qStart:self.qEnd]
+        return self.baseFeature("basecalls")
 
     def preBaseFrames(self):
-        return self.zmw._features["preBaseFrames"][self.qStart:self.qEnd]
+        return self.baseFeature("preBaseFrames")
+
+    def baseFeature(self, name):
+        return self.zmw._baseFeatures[name][self.qStart:self.qEnd]
+
+
+    @property
+    def readName(self):
+        return "%s/%d_%d" % (self.zmw.zmwName,
+                             self.readStart,
+                             self.readEnd)
+
+    def __repr__(self):
+        return "<%s: %s>" % (self.__class__.__name__,
+                             self.readName)
+
+    def __len__(self):
+        return self.readEnd - self.readStart
