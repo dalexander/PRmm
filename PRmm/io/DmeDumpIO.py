@@ -28,6 +28,9 @@ class DmeDumpReader(object):
     def hole(self, hn):
         return DmeDumpHoleNumberSlice(self, hn)
 
+    def holeAndBlock(self, hn, block):
+        return DmeDumpHoleNumberAndBlockSlice(self, hn, block)
+
 
 class DmeDumpHoleNumberSlice(object):
     def __init__(self, reader, hn):
@@ -43,6 +46,16 @@ class DmeDumpHoleNumberSlice(object):
         self.mixtureFraction = reader.mixtureFraction [:,hnIndex,...]
 
 
-class DmeDumpBlockSlice(object):
-    def __init__(self, reader, block):
-        pass
+class DmeDumpHoleNumberAndBlockSlice(object):
+    def __init__(self, reader, hn, block):
+        self.reader = reader
+        self.holeNumber = hn
+        self.block = block
+        hnIndex = reader.lookupHoleIndex(hn)
+        self.blockSize       = reader.blockSize[block]
+        self.startFrame      = reader.startFrame[block]
+        self.endFrame        = reader.endFrame[block]
+        self.baseline        = reader.baseline        [block,hnIndex,...]
+        self.mean            = reader.mean            [block,hnIndex,...]
+        self.covariance      = reader.covariance      [block,hnIndex,...]
+        self.mixtureFraction = reader.mixtureFraction [block,hnIndex,...]
