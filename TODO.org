@@ -1,6 +1,6 @@
 * Display
-- [ ] Use right colors for 2C2A
-- [ ] Pulse overlay colors, widths for 2C2A
+- [X] Use right colors for 2C2A
+- [X] Pulse overlay colors, widths for 2C2A
 - [ ] Mark pulse boundaries
 
 
@@ -9,8 +9,8 @@
 - [ ] Allow user to omit --hole in cmdline
 
 * Docs
-- [ ] Update README
-- [ ] Add screenshot
+- [X] Update README
+- [X] Add screenshot
 
 
 * Engine
