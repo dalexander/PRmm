@@ -16,3 +16,4 @@
 * Engine
 - [ ] Add VirtualPolymerase reader
 - [ ] Add "pulse" BAM reader
+- [ ] Disambiguate "regions" in fixture code--traceRegions, baseRegions
