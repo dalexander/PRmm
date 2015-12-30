@@ -1,11 +1,11 @@
 from PRmm.io import VirtualPolymeraseBamReader
-
 from pbcore.io import BasH5Reader
 from pbcore.data import getUnalignedBam, getBaxForBam
 from pbcore.io.align._BamSupport import downsampleFrames
 
 from numpy.testing import (assert_array_almost_equal as ASIM,
                            assert_array_equal        as AEQ)
+import numpy as np
 
 from nose.tools import (nottest,
                         assert_raises,
@@ -59,3 +59,55 @@ class TestVirtualPolymeraseReader(object):
             AEQ(BZ.adapterRegions, VZ.adapterRegions)
             AEQ(BZ.hqRegion, VZ.hqRegion)
             AEQ(BZ.insertRegions, VZ.insertRegions)
+
+    def testRead(self):
+        BZR = self.BZ.read()
+        VZR = self.VZ.read()
+        EQ(BZR.basecalls(), VZR.basecalls())
+
+
+# Mockup some bam records reflecting the internal "pulse BAM" spec
+from mock import Mock
+from pysam import AlignedSegment
+from pbcore.io import BamAlignment
+from PRmm.io.VirtualPolymeraseBamIO import VirtualPolymeraseZmw, PulseFeatureDesc
+
+pulsePeer = AlignedSegment()
+pulsePeer.is_unmapped=True
+pulsePeer.seq = "GATTACAGATTACA"
+pulsePeer.qname = "FakePulseRead"
+tags = dict(
+    RG="00000000",
+    np=1,
+    qs=0,
+    qe=14,
+    rq=0.80,
+    sn=[2.0, 3.0, 5.0, 6.0],
+    ip=[15]*14,
+    pw=[16]*14,
+    zm=42,
+    cx=2,
+    # Now, the pulse stuff
+    pc = " GAgggTTACAcccGATaaaTACA",
+    pa = [5]*23, #pkmean
+    pm = [4]*23, #pkmid
+    pd = [3]*23, #prePulseFrames
+    px = [2]*23, #pulseWidthInFrames
+)
+pulsePeer.set_tags(tags.items())
+
+mockBamReader = Mock(
+    readGroupInfo=lambda x: Mock(ID=0,
+                                 MovieName="FakeMovie",
+                                 ReadType="SUBREAD",
+                                 SequencingChemistry="FakeChemistry",
+                                 FrameRate=100.0))
+bamRecord = BamAlignment(mockBamReader, pulsePeer)
+
+
+mockVpReader = Mock(movieName="FakeMovie",
+                    pulseFeatureDescs=
+                     { "preBaseFrames"     : PulseFeatureDesc("preBaseFrames"     , "Ipd:Frames"        , "ip", "identity", np.uint16, np.uint16),
+                       "baseWidthInFrames" : PulseFeatureDesc("baseWidthInFrames" , "PulseWidth:Frames" , "pw", "identity", np.uint16, np.uint16) })
+
+vpZmw = VirtualPolymeraseZmw(mockVpReader, [bamRecord])

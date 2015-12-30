@@ -42,7 +42,6 @@ REGION_TABLE_DTYPE = [("holeNumber",  np.int32),
                       ("regionEnd",   np.int32),
                       ("regionScore", np.int32) ]
 
-
 class Decoders(object):
     @staticmethod
     def identity(x):
@@ -92,7 +91,7 @@ class VirtualPolymeraseBamReader(object):
         subreads = self.subreadsF.readsByHoleNumber(holeNumber)
         scraps = self.scrapsF.readsByHoleNumber(holeNumber)
         combined = sorted(subreads + scraps, key=lambda x: x.qStart)
-        return VirtualPolymeraseZmw(self, holeNumber, combined)
+        return VirtualPolymeraseZmw(self, combined)
 
     @property
     @cached
@@ -115,13 +114,15 @@ class VirtualPolymeraseBamReader(object):
 
 def _recordsFormReadPartition(records):
     """
-    check that the records are contiguous in read space, starting at 0
+    check that the records are contiguous in read space, starting at 0,
+    and are from the same hole
     """
     qEnd = 0
     for r in records:
         if r.qStart != qEnd: return False
         qEnd = r.qEnd
-    return True
+    # passed first test...
+    return len(set(r.HoleNumber for r in records)) == 1
 
 
 def _concatenateRecordArrayTags(tag, dtype, records):
@@ -144,13 +145,12 @@ def _preciseReadType(bamRecord):
 
 class VirtualPolymeraseZmw(BaseRegionsMixin):
 
-    def __init__(self, reader, hn, bamRecords):
+    def __init__(self, reader, bamRecords):
         if not _recordsFormReadPartition(bamRecords):
             raise Exception, "Records do not form a contiguous span of a ZMW!"
         self.reader = reader
-        self.holeNumber = hn
+        self.holeNumber = bamRecords[0].HoleNumber
         self.bamRecords = bamRecords
-        assert self.bamRecords[0].holeNumber == hn
 
     @property
     def zmwName(self):
@@ -163,9 +163,9 @@ class VirtualPolymeraseZmw(BaseRegionsMixin):
 
     @property
     @cached
-    def _baseFeatures(self):
+    def _features(self):
         """
-        The assembled base features, as a dict
+        The assembled base and pulse features, as a dict
         """
         _features = { "basecalls" : "".join(r.peer.seq for r in self.bamRecords) }
         for featureName in self.reader.pulseFeatureDescs:
@@ -177,27 +177,40 @@ class VirtualPolymeraseZmw(BaseRegionsMixin):
         return _features
 
     @property
+    def hasPulseFeatures(self):
+        """
+        Returns True iff this record has the detailed "pulse" features
+        """
+        return "pulsecalls" in self._features
+
+    @property
     @cached
     def polymeraseReadLength(self):
         return max(r.qEnd for r in self.bamRecords)
 
     def readNoQC(self, qStart=None, qEnd=None):
         """
-        ... ref to bash5 method
+        ... ref to bash5 method doc
         """
         if qEnd is None and qStart is not None:
             raise ValueError, "Must specify both args, or neither"
-        elif qStart is None:
-            qStart = 0
-            qEnd = self.polymeraseReadLength
+        if qStart is None:
+            qStart, qEnd = 0, self.polymeraseReadLength
         return VirtualPolymeraseZmwRead(self, qStart, qEnd)
 
 
-    def read(self, rStart=None, rEnd=None):
+    def read(self, qStart=None, qEnd=None):
         """
-        ... ref to bash5 method
+        ... ref to bash5 method doc
         """
-        raise NotImplementedError()
+        if qEnd is None and qStart is not None:
+            raise ValueError, "Must specify both args, or neither"
+        if qStart is None:
+            qStart, qEnd = self.hqRegion
+        else:
+            qStart = max(qStart, self.hqRegion[0])
+            qEnd   = min(qEnd, self.hqRegion[1])
+        return VirtualPolymeraseZmwRead(self, qStart, qEnd)
 
     @property
     @cached
@@ -258,18 +271,28 @@ class VirtualPolymeraseZmwRead(object):
     def basecalls(self):
         return self.baseFeature("basecalls")
 
+    def pulsecalls(self):
+        return self.baseFeature("pulsecalls")
+
     def preBaseFrames(self):
         return self.baseFeature("preBaseFrames")
 
     def baseFeature(self, name):
-        return self.zmw._baseFeatures[name][self.qStart:self.qEnd]
-
+        return self.zmw._features[name][self.qStart:self.qEnd]
 
     @property
     def readName(self):
         return "%s/%d_%d" % (self.zmw.zmwName,
                              self.readStart,
                              self.readEnd)
+
+    @property
+    def readStart(self):
+        return self.qStart
+
+    @property
+    def readEnd(self):
+        return self.qEnd
 
     def __repr__(self):
         return "<%s: %s>" % (self.__class__.__name__,
