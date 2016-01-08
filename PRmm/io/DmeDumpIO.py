@@ -10,14 +10,15 @@ class DmeDumpReader(object):
     def __init__(self, fname):
         self.filename = op.abspath(op.expanduser(fname))
         self.file = h5py.File(self.filename, "r")
-        self.holeNumber      = self.file["/HoleNumber"][:]                     # [nZmws]
-        self.blockSize       = self.file["/BlockSize"][:]                      # [nBlocks]
-        self.startFrame      = self.file["/StartFrame"][:]                     # [nBlocks]
-        self.endFrame        = self.file["/EndFrame"][:]                       # [nBlocks]
-        self.baseline        = self.file["/BaselineMean"]                      # [nBlocks][nZmws][nCam]
-        self.mean            = self.file["/SmoothedEstimates/Mean"]            # [nBlocks][nZmws][nComp][nCam]
-        self.covariance      = self.file["/SmoothedEstimates/Covariance"]      # [nBlocks][nZmws][nComp][numCvr(nCam)]
-        self.mixtureFraction = self.file["/SmoothedEstimates/MixtureFraction"] # [nBlocks][nZmws][nComp]
+        self.holeNumber         = self.file["/HoleNumber"][:]                     # [nZmws]
+        self.blockSize          = self.file["/BlockSize"][:]                      # [nBlocks]
+        self.startFrame         = self.file["/StartFrame"][:]                     # [nBlocks]
+        self.endFrame           = self.file["/EndFrame"][:]                       # [nBlocks]
+        self.baseline           = self.file["/BaselineMean"]                      # [nBlocks][nZmws][nCam]
+        self.baselineCovariance = self.file["/BaselineCovariance"]                # [nBlocks][nZmws][nCvr]
+        self.mean               = self.file["/SmoothedEstimates/Mean"]            # [nBlocks][nZmws][nComp][nCam]
+        self.covariance         = self.file["/SmoothedEstimates/Covariance"]      # [nBlocks][nZmws][nComp][nCvr]
+        self.mixtureFraction    = self.file["/SmoothedEstimates/MixtureFraction"] # [nBlocks][nZmws][nComp]
 
         self._holeIndexLookup = dict(zip(self.holeNumber,
                                          xrange(len(self.holeNumber))))
@@ -37,13 +38,14 @@ class DmeDumpHoleNumberSlice(object):
         self.reader = reader
         self.holeNumber = hn
         hnIndex = reader.lookupHoleIndex(hn)
-        self.blockSize       = reader.blockSize
-        self.startFrame      = reader.startFrame
-        self.endFrame        = reader.endFrame
-        self.baseline        = reader.baseline        [:,hnIndex,...]
-        self.mean            = reader.mean            [:,hnIndex,...]
-        self.covariance      = reader.covariance      [:,hnIndex,...]
-        self.mixtureFraction = reader.mixtureFraction [:,hnIndex,...]
+        self.blockSize          = reader.blockSize
+        self.startFrame         = reader.startFrame
+        self.endFrame           = reader.endFrame
+        self.baseline           = reader.baseline          [:,hnIndex,...]
+        self.baselineCovariance = reader.baselineCovariance[:,hnIndex,...]
+        self.mean               = reader.mean              [:,hnIndex,...]
+        self.covariance         = reader.covariance        [:,hnIndex,...]
+        self.mixtureFraction    = reader.mixtureFraction   [:,hnIndex,...]
 
 
 class DmeDumpHoleNumberAndBlockSlice(object):
@@ -52,10 +54,11 @@ class DmeDumpHoleNumberAndBlockSlice(object):
         self.holeNumber = hn
         self.block = block
         hnIndex = reader.lookupHoleIndex(hn)
-        self.blockSize       = reader.blockSize[block]
-        self.startFrame      = reader.startFrame[block]
-        self.endFrame        = reader.endFrame[block]
-        self.baseline        = reader.baseline        [block,hnIndex,...]
-        self.mean            = reader.mean            [block,hnIndex,...]
-        self.covariance      = reader.covariance      [block,hnIndex,...]
-        self.mixtureFraction = reader.mixtureFraction [block,hnIndex,...]
+        self.blockSize          = reader.blockSize         [block]
+        self.startFrame         = reader.startFrame        [block]
+        self.endFrame           = reader.endFrame          [block]
+        self.baseline           = reader.baseline          [block,hnIndex,...]
+        self.baselineCovariance = reader.baselineCovariance[block,hnIndex,...]
+        self.mean               = reader.mean              [block,hnIndex,...]
+        self.covariance         = reader.covariance        [block,hnIndex,...]
+        self.mixtureFraction    = reader.mixtureFraction   [block,hnIndex,...]
