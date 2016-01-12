@@ -175,7 +175,7 @@ class TraceViewer(QtGui.QMainWindow):
 __doc__ = \
 """
 Usage:
-    main.py [--debug] --fixture=INIFILE::SECTION --hole=HOLENUMBER
+    main.py [--debug] [--headless] --fixture=INIFILE::SECTION --hole=HOLENUMBER
 """
 
 def main():
@@ -188,13 +188,20 @@ def main():
     else:
         fixtureIni, fixtureSection = fixtureArg.split("::")
     fixture = Fixture.fromIniFile(fixtureIni, fixtureSection)
-
     holeNumber = int(args["--hole"])
 
-    app = QtGui.QApplication([])
-    traceViewer = TraceViewer(fixture)
-    traceViewer.setFocus(holeNumber)
-
-    if args["--debug"]:
-        debug_trace()
-    app.exec_()
+    if args["--headless"] is not False:
+        banner = "Convenient variables available: zmw, fixture"
+        zmw = fixture[holeNumber]
+        try:
+            from IPython import embed
+            embed(banner1=banner)
+        except ImportError:
+            code.InteractiveConsole(locals=locals()).interact(banner=banner)
+    else:
+        app = QtGui.QApplication([])
+        traceViewer = TraceViewer(fixture)
+        traceViewer.setFocus(holeNumber)
+        if args["--debug"]:
+            debug_trace()
+        app.exec_()
