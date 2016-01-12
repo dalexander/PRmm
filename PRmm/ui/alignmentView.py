@@ -146,7 +146,7 @@ class Main(object):
 
 
 if __name__ == "__main__":
-    readers = ReadersFixture.fromIniFile("~/.pacbio/data-fixtures.ini", "4C-lambda")
+    readers = Fixture.fromIniFile("~/.pacbio/data-fixtures.ini", "4C-lambda")
     holeNumber = 182
     m = Main()
     m.run(readers, holeNumber)

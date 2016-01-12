@@ -17,7 +17,7 @@ resulting from the ZMW.
 
 The basic use concept for the model is:
 
-  1. Load a "ReadersFixture", which consists of a collated set of
+  1. Load a "Fixture", which consists of a collated set of
      files providing traces (`tr(c|x).h5`), pulses (`bam` or
      `pl(s|x).h5`), bases (`bam` or `bas(s|x).h5`) and alignments
      (`bam` or `cmp.h5`).  For convenience, a fixture can be specified
@@ -35,11 +35,11 @@ The basic use concept for the model is:
      (note the use of format interpolation here, which is inessential (and nonstandard!)
      but convenient) and then loaded like so:
 
-        >>> readers = ReadersFixture.fromIniFile("~/.pacbio/data-fixtures.ini", "All4Mers-LVP1")
+        >>> readers = Fixture.fromIniFile("~/.pacbio/data-fixtures.ini", "All4Mers-LVP1")
 
 
   2. "Slice" the ReadersFixture by a holenumber of interest, obtaining
-     a "ZmwFixture", which then gives convenient access to the trace
+     a "FixtureZmw", which then gives convenient access to the trace
      and analysis data from that ZMW.
 
         >>> zmw = readers[55]

@@ -8,9 +8,9 @@ class Unimplemented(Exception): pass
 class Unavailable(Exception): pass
 
 
-class ZmwFixture(object):
+class FixtureZmw(object):
     """
-    A ZMW fixture provides a ZMW level view of the world---access to
+    A FixtureZmw provides a ZMW level view of the world---access to
     data from a single ZMW, collating the different data types (trace,
     pulse, base, alignment).
 

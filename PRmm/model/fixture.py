@@ -6,17 +6,16 @@ from docopt import docopt
 import tempfile, os, os.path as op
 
 from PRmm.model._utils import *
-from PRmm.model.zmwFixture import ZmwFixture
+from PRmm.model.fixtureZmw import FixtureZmw
 
-__all__ = [ "ReadersFixture" ]
+__all__ = [ "Fixture" ]
 
 
 class TraceUnavailable(Exception): pass
 
-
-class ReadersFixture(object):
+class Fixture(object):
     """
-    A *readers fixture* provides a simple means to collect reader
+    A *fixture* provides a simple means to collect reader
     objects associated the the trace, pulse, base, alignment, and
     reference files (or some subset of these files) associated with a
     single job, and further, a means to focus on a single ZMW and see
@@ -64,7 +63,7 @@ class ReadersFixture(object):
         cp.optionxform=str
         cp.read(iniFilename)
         opts = dict(cp.items(sectionName))
-        return ReadersFixture(trcFname=resolvePath(opts.get("Traces")),
+        return Fixture(trcFname=resolvePath(opts.get("Traces")),
                               plsFname=resolvePath(opts.get("Pulses")),
                               basFname=resolvePath(opts.get("Bases")),
                               refFname=resolvePath(opts.get("Reference")),
@@ -75,7 +74,7 @@ class ReadersFixture(object):
         readerFieldNames = [ fn for fn in dir(self) if fn.endswith("F") ]
         readersRepr = "\n  " + ",\n  ".join(["%s=%s" % (fieldName, getattr(self, fieldName))
                             for fieldName in readerFieldNames])
-        return "<ReadersFixture %s >" % readersRepr
+        return "<Fixture %s >" % readersRepr
 
 
     # -- Essential info ---
@@ -134,7 +133,7 @@ class ReadersFixture(object):
         if holeNumber not in self.holeNumbers:
             raise TraceUnavailable, "No trace for desired HN"
         else:
-            return ZmwFixture(self, holeNumber)
+            return FixtureZmw(self, holeNumber)
 
 
 
@@ -146,7 +145,7 @@ Usage:
 
 def main():
     args = docopt(__doc__)
-    fx = ReadersFixture.fromIniFile(args["<iniFile>"], args["<sectionName>"])
+    fx = Fixture.fromIniFile(args["<iniFile>"], args["<sectionName>"])
     print fx
 
 if __name__ == '__main__':

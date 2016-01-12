@@ -187,7 +187,7 @@ def main():
         fixtureIni, fixtureSection = "~/.pacbio/data-fixtures.ini", fixtureArg
     else:
         fixtureIni, fixtureSection = fixtureArg.split("::")
-    fixture = ReadersFixture.fromIniFile(fixtureIni, fixtureSection)
+    fixture = Fixture.fromIniFile(fixtureIni, fixtureSection)
 
     holeNumber = int(args["--hole"])
 
