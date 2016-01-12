@@ -19,10 +19,10 @@ class RegionsOverlayItem(pg.GraphicsObject):
                 Region.HQ_REGION        : 0.98,
                 Region.ALIGNMENT_REGION : 1.00 }
 
-    def __init__(self, regions, plot):
+    def __init__(self, traceRegions, plot):
         pg.GraphicsObject.__init__(self)
         self.plot = plot
-        self.regions = regions
+        self.traceRegions = traceRegions
         self.generatePicture()
 
     def regionOverlayY(self, regionType):
@@ -37,12 +37,12 @@ class RegionsOverlayItem(pg.GraphicsObject):
         # Make this a checkbox in GUI
         regionTypesOfInterest = ( Region.ALIGNMENT_REGION, Region.ADAPTER_REGION )
 
-        for region in self.regions:
+        for region in self.traceRegions:
             if region.regionType in regionTypesOfInterest:
                 p.setPen(self.pens[region.regionType])
                 y = self.regionOverlayY(region.regionType)
-                p.drawLine(QtCore.QPointF(region.startFrame, y),
-                           QtCore.QPointF(region.endFrame, y))
+                p.drawLine(QtCore.QPointF(region.start, y),
+                           QtCore.QPointF(region.end, y))
 
     def paint(self, p, *args):
         p.drawPicture(0, 0, self.picture)

@@ -66,7 +66,7 @@ class TraceViewer(QtGui.QMainWindow):
 
 
     def renderRegions(self):
-        self.plot1.addItem(RegionsOverlayItem(self.zmw.regions, self.plot1))
+        self.plot1.addItem(RegionsOverlayItem(self.zmw.traceRegions, self.plot1))
 
     @property
     def movieName(self):

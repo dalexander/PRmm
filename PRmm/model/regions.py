@@ -2,7 +2,7 @@ __all__ = [ "Region", "Regions" ]
 
 class Region(object):
     """
-    A region, in *frame* coordinates
+    A region, in either *frame* or *base* coordinates---generic.
     """
     # These agree with regions enum defined for bas/bax files
     ADAPTER_REGION = 0
@@ -20,24 +20,24 @@ class Region(object):
                   HQ_REGION        : "HQ",
                   ALIGNMENT_REGION : "ALIGNMENT" }
 
-    def __init__(self, regionType, startFrame, endFrame, name=""):
+    def __init__(self, regionType, start, end, name=""):
         self.regionType = regionType
-        self.startFrame = startFrame
-        self.endFrame   = endFrame
+        self.start      = start
+        self.end        = end
         self.name       = name
 
     def __repr__(self):
         return "<Region: %10s %7d %7d>" % (Region.typeNames[self.regionType],
-                                         self.startFrame,
-                                         self.endFrame)
+                                         self.start,
+                                         self.end)
 
     def __cmp__(self, other):
-        return cmp((self.startFrame, self.regionType),
-                   (other.startFrame, other.regionType))
+        return cmp((self.start, self.regionType),
+                   (other.start, other.regionType))
 
     @property
-    def frameExtent(self):
-        return (self.startFrame, self.endFrame)
+    def extent(self):
+        return (self.start, self.end)
 
 
 class Regions(object):

@@ -166,34 +166,56 @@ class FixtureZmw(object):
     # -- Regions info --
 
     @property
-    def hasRegions(self):
+    def hasBaseRegions(self):
+        return self.hasBases
+
+
+    @property
+    @cached
+    def baseRegions(self):
+        """
+        Get region info---BASE delimited
+        """
+        if not self.hasBases:
+            raise Unavailable, "Bases are required to access regions"
+        else:
+            ans = []
+            for basRegion in self._bases.zmw.regionTable:
+                # FIXME: hacky workaround for bam2bax breakage
+                if basRegion.regionStart == basRegion.regionEnd:
+                    start = end = 0
+                else:
+                    start = basRegion.regionStart
+                    end   = basRegion.regionEnd
+                ans.append(Region(basRegion.regionType, start, end))
+            # Are there alignments?
+            if self.hasAlignments:
+                for aln in self._alns:
+                    ans.append(Region(Region.ALIGNMENT_REGION, aln.rStart, aln.rEnd))
+            return Regions(sorted(ans))
+
+
+    @property
+    def hasTraceRegions(self):
         return self.hasBases and self.hasPulses
 
     @property
     @cached
-    def regions(self):
+    def traceRegions(self):
         """
         Get region info---FRAME delimited
         """
         if (not self.hasPulses or not self.hasBases):
             raise Unavailable, "Pulses and bases are required to access regions"
         else:
-            ans = []
-            for basRegion in self._bases.zmw.regionTable:
-                # FIXME: hacky workaround for bam2bax breakage
-                if basRegion.regionStart == basRegion.regionEnd:
-                    startFrame = endFrame = 0
-                else:
-                    startFrame = self.baseStartFrame[basRegion.regionStart]
-                    endFrame = self.baseEndFrame[basRegion.regionEnd-1] # TODO: check this logic
-                ans.append(Region(basRegion.regionType, startFrame, endFrame))
-            # Are there alignments?
-            if self.hasAlignments:
-                for aln in self._alns:
-                    ans.append(Region(Region.ALIGNMENT_REGION,
-                                 self.baseStartFrame[aln.rStart],
-                                 self.baseEndFrame[aln.rEnd-1]))
-            return Regions(sorted(ans))
+            baseRegions = self.baseRegions
+            traceRegions = [ Region(br.regionType,
+                                    self.baseStartFrame[br.start],
+                                    self.baseEndFrame[br.end - 1])  # This logic is probably incorrect.
+                             for br in baseRegions ]
+            return Regions(traceRegions)
+
+
 
     # -- Interval queries --
 
