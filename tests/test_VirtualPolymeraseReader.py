@@ -93,6 +93,7 @@ tags = dict(
     pm = [4]*23, #pkmid
     pd = [3]*23, #prePulseFrames
     px = [2]*23, #pulseWidthInFrames
+    sf = range(3, 1000, 5)[:23] # startFrame
 )
 pulsePeer.set_tags(tags.items())
 
