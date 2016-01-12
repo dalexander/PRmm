@@ -27,6 +27,10 @@ def covarianceEllipse3(mean, covar3, scale=1.0):
     covar[1,0] = covar3[2]
     return covarianceEllipse(mean, covar, scale)
 
+def covarianceEllipses3(means, covar3s, scale=1.0):
+    return [ covarianceEllipse3(mean, covar3, scale)
+             for (mean, covar3) in zip(means, covar3s) ]
+
 def demo():
     from matplotlib import pyplot as plt
     mu = [1,1]
