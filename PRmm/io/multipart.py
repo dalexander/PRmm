@@ -25,6 +25,8 @@ class MultipartReader(object):
                     partFilenames = [ self.filename ]
         elif self.filename.endswith(".fofn"):
             partFilenames = list(readFofn(self.filename))
+        else:
+            raise ValueError, "Invalid file name for multipart reader"
         self._parts = [ self.PART_READER_CLASS(pfn, *rest)
                         for pfn in partFilenames ]
 
