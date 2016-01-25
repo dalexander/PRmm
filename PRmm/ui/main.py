@@ -65,7 +65,7 @@ class TraceViewer(QtGui.QMainWindow):
         self.plot1.addItem(PulsesOverlayItem(self.zmw, self.plot1, self.style))
 
 
-    def renderRegions(self):
+    def renderTraceRegions(self):
         self.plot1.addItem(RegionsOverlayItem(self.zmw.traceRegions, self.plot1))
 
     @property
@@ -114,8 +114,8 @@ class TraceViewer(QtGui.QMainWindow):
         if self.zmw.hasPulses:
             self.renderPulses()
 
-        if self.zmw.hasRegions:
-            self.renderRegions()
+        if self.zmw.hasTraceRegions:
+            self.renderTraceRegions()
 
         if self.zmw.hasBases and self.zmw.hasAlignments:
             self.alnView.setAlignments(self.zmw.multiAlignment)
