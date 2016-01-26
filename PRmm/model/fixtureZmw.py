@@ -191,7 +191,7 @@ class FixtureZmw(object):
             # Are there alignments?
             if self.hasAlignments:
                 for aln in self._alns:
-                    ans.append(Region(Region.ALIGNMENT_REGION, aln.rStart, aln.rEnd))
+                    ans.append(Region(Region.ALIGNMENT_REGION, aln.aStart, aln.aEnd))
             return Regions(sorted(ans))
 
 
