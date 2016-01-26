@@ -123,7 +123,8 @@ class ZmwPulses(object):
         # This is a bit tricky.  Basically we want startFrame - lag(endFrame)
         # sfp = startframeprevious, etc.
         if self.offsetBegin == 0:
-            efp = np.hstack([[0], self.endFrame()[:-1]])
+            singleZero = np.array([0], dtype=np.uint32)
+            efp = np.hstack([singleZero, self.endFrame()[:-1]])
         else:
             sfp = arrayFromDataset(self._pulsecallsGroup["StartFrame"],
                                    self.offsetBegin - 1, self.offsetEnd - 1)
