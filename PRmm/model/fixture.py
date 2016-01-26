@@ -32,7 +32,7 @@ class Fixture(object):
         self.basF = None if not basFname else BasH5Reader(basFname)
         self.plsF = None if not plsFname else PlsH5Reader(plsFname, self.basF)
         self.refF = None if not refFname else IndexedFastaReader(refFname)
-        self.alnF = None if not alnFname else openIndexedAlignmentFile(alnFname)
+        self.alnF = None if not alnFname else openIndexedAlignmentFile(alnFname, refFname)
         if self.alnF is not None:
             if len(self.alnF.movieNames) > 1:
                 raise ValueError, "No support for multi-movie jobs"
