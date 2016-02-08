@@ -211,7 +211,7 @@ class FixtureZmw(object):
             baseRegions = self.baseRegions
             traceRegions = [ Region(br.regionType,
                                     self.baseStartFrame[br.start],
-                                    self.baseEndFrame[br.end - 1])  # This logic is probably incorrect.
+                                    self.baseEndFrame[max(br.end - 1, 0)])  # This logic is probably incorrect.
                              for br in baseRegions ]
             return Regions(traceRegions)
 
