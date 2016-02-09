@@ -39,6 +39,9 @@ class Region(object):
     def extent(self):
         return (self.start, self.end)
 
+    def __len__(self):
+        return self.end - self.start
+
 
 class Regions(object):
     """
