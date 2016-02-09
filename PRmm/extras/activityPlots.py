@@ -61,11 +61,6 @@ def alignmentFrameExtent(zmwFixture):
     aln = [r for r in rr if r.regionType == Region.ALIGNMENT_REGION][0]
     return (aln.startFrame, aln.endFrame)
 
-def hqFrameExtent(zmwFixture):
-    assert len(zmwFixture.alignments) == 1
-    rr = zmwFixture.regions
-    aln = [r for r in rr if r.regionType == Region.HQ_REGION][0]
-    return (aln.startFrame, aln.endFrame)
 
 def computeMetrics(zmwFixture, epochFrames=4096):
 
@@ -158,19 +153,20 @@ def computeMetrics(zmwFixture, epochFrames=4096):
             sandwichRate.append(np.nan)
             halfSandwichRate.append(np.nan)
 
-        a = zmwFixture.alignments[0]
-        b = zmwFixture.baseLabel[a.rStart:a.rEnd]
-        alnExtent = np.array(alignmentFrameExtent(zmwFixture))/ W_frames
+        #a = zmwFixture.alignments[0]
+        #b = zmwFixture.baseLabel[a.rStart:a.rEnd]
+        #alnExtent = np.array(alignmentFrameExtent(zmwFixture))/ W_frames
 
-        state = []
-        for i in xrange(n_W):
-            alnStart, alnEnd = alnExtent
-            afterAlnStart = i   >= alnStart
-            beforeAlnEnd  = i+1 <= alnEnd
-            if   afterAlnStart and beforeAlnEnd: s = IN_ALIGNMENT
-            elif not afterAlnStart:              s = PRE_ALIGNMENT
-            else:                                s = POST_ALIGNMENT
-            state.append(s)
+        state = np.zeros_like(homopolymerContent)
+        # state = []
+        # for i in xrange(n_W):
+        #     alnStart, alnEnd = alnExtent
+        #     afterAlnStart = i   >= alnStart
+        #     beforeAlnEnd  = i+1 <= alnEnd
+        #     if   afterAlnStart and beforeAlnEnd: s = IN_ALIGNMENT
+        #     elif not afterAlnStart:              s = PRE_ALIGNMENT
+        #     else:                                s = POST_ALIGNMENT
+        #     state.append(s)
 
 
     return pd.DataFrame({ "HoleNumber"             : holeNumber,
@@ -190,25 +186,29 @@ def computeMetrics(zmwFixture, epochFrames=4096):
 
 def plotMetrics(zmwFixture, epochFrames=4096):
 
-    metrics = computeMetrics(zmwFixture, epochFrames)
-
-    assert len(zmwFixture.alignments) == 1
-    a = zmwFixture.alignments[0]
-    b = zmwFixture.baseLabel[a.rStart:a.rEnd]
-
     # interval sizes...
     frameRate = zmwFixture.frameRate
     W_sec = float(epochFrames)/frameRate
     W_frames = epochFrames
     n_W = int(zmwFixture.numFrames / W_frames)
 
-    alnExtent = np.array(alignmentFrameExtent(zmwFixture))/ W_frames
-    hqExtent  = np.array(hqFrameExtent(zmwFixture))/ W_frames
+    metrics = computeMetrics(zmwFixture, epochFrames)
 
-    details = "%d bp, %d bp @ %d%%, %d bp" %  \
-              (a.rStart,
-               a.rEnd  - a.rStart, 100*a.identity,
-               zmwFixture.numBases - a.rEnd)
+    assert len(zmwFixture.alignments) <= 1
+    hasAlignment = len(zmwFixture.alignments) == 1
+    # if hasAlignment:
+    #     a = zmwFixture.alignments[0]
+    #b = zmwFixture.baseLabel[a.rStart:a.rEnd]
+
+    if hasAlignment:
+        alnExtent = np.array(zmwFixture.traceRegions.alignment.extent) / W_frames
+    hqExtent = np.array(zmwFixture.traceRegions.hqRegion.extent) / W_frames
+
+    # details = "%d bp, %d bp @ %d%%, %d bp" %  \
+    #           (a.rStart,
+    #            a.rEnd  - a.rStart, 100*a.identity,
+    #            zmwFixture.numBases - a.rEnd)
+    details = ""
 
     fig = plt.figure(figsize=(12,10))
     red_patch = matplotlib.patches.Patch(color='red', label="Alignment")
@@ -224,7 +224,8 @@ def plotMetrics(zmwFixture, epochFrames=4096):
         ymin, ymax = ax.get_ylim()
         #plt.vlines(alnExtent, *ax.get_ylim(), linewidth=1)
         #plt.vlines(hqExtent,  *ax.get_ylim(), linewidth=1, color="red")
-        plt.hlines(ymax, alnExtent[0], alnExtent[1], linewidth=4, color="red")
+        if hasAlignment:
+            plt.hlines(ymax, alnExtent[0], alnExtent[1], linewidth=4, color="red")
         plt.hlines(ymin, hqExtent[0],  hqExtent[1],  linewidth=4, color="black")
 
         plt.ylabel(desc)
