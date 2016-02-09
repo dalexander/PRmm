@@ -1,4 +1,6 @@
-# hmmlearn 0.1.1
+# We require hmmlearn 0.2.0, which is not yet released, because of
+# bugfixes---especially the removal of compulsory "normalization" that
+# was destroying the structure of the transition matrix.
 from hmmlearn.hmm import MultinomialHMM
 import json, numpy as np, pandas
 
@@ -35,7 +37,8 @@ def labelWindowsFromBazViewerJson(bazZmwJson, hn, frameRate=80.0):
         if   (pulseRate[i] <= 0.5 or labelStutterRate[i] >= 0.6): labels[i] = A0
         elif (halfSandwichRate[i]>= 0.06):                        labels[i] = A2
         else:                                                     labels[i] = A1
-    return labels
+    # Turn into a column vector for sklearn convention
+    return np.reshape(labels, (-1, 1))
 
 def initHMM(length):
     a = 1.0 / length
@@ -46,7 +49,7 @@ def initHMM(length):
                       [  0,   0,   1,   0],   # PostQuiet ->
                       [  0,   0,   0,   1] ]) # PostActive ->
 
-    # Emission probabilities
+    # emission probabilities
     emit = np.array([[ 0.25, 0.25, 0.50 ],    # Emit | Pre
                      [ 0.20, 0.75, 0.05 ],    # Emit | HQ
                      [ 0.70, 0.15, 0.15 ],    # Emit | PostQuiet
@@ -54,19 +57,18 @@ def initHMM(length):
     #                   A0    A1    A2
 
     # Start state distribution
-    start = np.array([0.33, 0.33, 0.33, 0])
+    start = np.array([0.34, 0.33, 0.33, 0])
 
     hmm = MultinomialHMM(n_components=nStates)
-    # hmmlearn API seems deficient here...
     hmm.transmat_ = trans
     hmm.startprob_ = start
     hmm.emissionprob_ = emit
     return hmm
 
 def findHQR(labelSequence):
-    pass
-
-
+    hmm = initHMM(len(labelSequence))
+    ll, inferredStates = hmm.decode(labelSequence)
+    # find the extent of HQ
 
 #def main():
 
@@ -74,7 +76,8 @@ def findHQR(labelSequence):
 #     main()
 
 
-labels = labelWindowsFromBazViewerJson("/home/UNIXHOME/dalexander/Projects/Bugs/Dromedary-HQRF/ZMW-11272631/11272631.json", 11272631)
+#labels = labelWindowsFromBazViewerJson("/home/UNIXHOME/dalexander/Projects/Bugs/Dromedary-HQRF/ZMW-11272631/11272631.json", 11272631)
+labels = labelWindowsFromBazViewerJson("/tmp/11272631.json", 11272631)
 hmm = initHMM(len(labels))
-print hmm.predict(labels)
+print hmm.decode(labels)
 # This is bogus---not allowed to transition into and out of HQRF!
