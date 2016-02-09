@@ -31,7 +31,6 @@ def labelWindowsFromBazViewerJson(bazZmwJson, hn, frameRate=80.0):
     pulseRate = df.NUM_PULSES / (df.NUM_FRAMES / frameRate)
     labelStutterRate = df.NUM_PULSE_LABEL_STUTTERS / df.NUM_PULSES
     labels = [-1] * len(df)
-    import ipdb; ipdb.set_trace()
     for i in xrange(len(df)):
         if   (pulseRate[i] <= 0.5 or labelStutterRate[i] >= 0.6): labels[i] = A0
         elif (halfSandwichRate[i]>= 0.06):                        labels[i] = A2
@@ -66,3 +65,16 @@ def initHMM(length):
 
 def findHQR(labelSequence):
     pass
+
+
+
+#def main():
+
+# if __name__ == "__main__":
+#     main()
+
+
+labels = labelWindowsFromBazViewerJson("/home/UNIXHOME/dalexander/Projects/Bugs/Dromedary-HQRF/ZMW-11272631/11272631.json", 11272631)
+hmm = initHMM(len(labels))
+print hmm.predict(labels)
+# This is bogus---not allowed to transition into and out of HQRF!
