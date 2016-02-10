@@ -1,3 +1,5 @@
 pbcore
 numpy
 h5py
+intervaltree
+docopt
