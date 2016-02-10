@@ -38,6 +38,10 @@ class FixtureZmw(object):
     def frameRate(self):
         return self.readers.frameRate
 
+    @property
+    def hqRegionSnr(self):
+        return self.readers.basF[self.holeNumber].hqRegionSnr
+
     # -- Trace info --
 
     @property
