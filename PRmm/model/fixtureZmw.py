@@ -21,12 +21,32 @@ class FixtureZmw(object):
     def __init__(self, readersFixture, holeNumber):
         self.readers = readersFixture
         self.holeNumber = holeNumber
-        self._pulses = self.readers.plsF[holeNumber].pulses()  if self.readers.hasPulses else None
-        self._bases = self.readers.basF[holeNumber].readNoQC() if self.readers.hasBases  else None
-        if self.readers.hasAlignments:
-            self._alns = self.readers.alnF.readsByHoleNumber(holeNumber)
+
+
+    @property
+    @cached
+    def _pulses(self):
+        if self.readers.hasPulses:
+            return self.readers.plsF[self.holeNumber].pulses()
         else:
-            self._alns = []
+            return None
+
+    @property
+    @cached
+    def _bases(self):
+        if self.readers.hasPulses:
+            return self.readers.basF[self.holeNumber].readNoQC()
+        else:
+            return None
+
+    @property
+    @cached
+    def _alns(self):
+        if self.readers.hasAlignments:
+            return self.readers.alnF.readsByHoleNumber(self.holeNumber)
+        else:
+            return []
+
 
     # -- Identifying info --
 
@@ -61,7 +81,7 @@ class FixtureZmw(object):
 
     @property
     def hasPulses(self):
-        return self._pulses is not None
+        return self.readers.hasPulses
 
     @property
     def numPulses(self):
@@ -115,7 +135,7 @@ class FixtureZmw(object):
 
     @property
     def hasBases(self):
-        return self._bases is not None
+        return self.readers.hasBases
 
     @property
     def numBases(self):
