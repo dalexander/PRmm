@@ -6,6 +6,7 @@ from docopt import docopt
 import tempfile, os, os.path as op
 
 from PRmm.model._utils import *
+from PRmm.model.utils import cached
 from PRmm.model.fixtureZmw import FixtureZmw
 
 __all__ = [ "Fixture" ]
@@ -119,8 +120,10 @@ class Fixture(object):
     # --- Access by holenumber ---
 
     @property
+    @cached
     def holeNumbers(self):
-        return self.trcF.holeNumbers
+        return sorted(set.intersection(set(self.trcF.holeNumbers),
+                                       set(self.basF.allSequencingZmws)))
 
     @property
     def holeNumbersWithAlignments(self):
