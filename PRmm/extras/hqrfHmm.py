@@ -2,7 +2,7 @@
 # bugfixes---especially the removal of compulsory "normalization" that
 # was destroying the structure of the transition matrix.
 from hmmlearn.hmm import MultinomialHMM
-import json, numpy as np, pandas
+import h5py, json, numpy as np, pandas as pd
 
 
 # Activity enums
@@ -19,25 +19,27 @@ POST_ACTIVE = 3
 nStates     = 4
 
 
-def labelWindowsFromMetrics(metrics):
-    # Metrics -> [ Activity ]
-    pass
+def loadBazViewerHDF5(h5Filename, frameRateHz=80.0):
+    h5 = h5py.File(h5Filename, "r")
+    mf = h5["MFMetrics"]
+    mapping = { k : mf[k][:] for k in mf }
+    df = pd.DataFrame.from_dict(mapping)
+    # Augment columns
+    df["HalfSandwichRate"] = df.NUM_HALF_SANDWICHES.astype(np.float) /  df.NUM_PULSES
+    df["PulseRate"] = df.NUM_PULSES.astype(np.float) / (df.NUM_FRAMES / frameRateHz)
+    df["LabelStutterRate"] = df.NUM_PULSE_LABEL_STUTTERS.astype(np.float) / df.NUM_PULSES
+    return df
 
-def labelWindowsFromBazViewerJson(bazZmwJson, hn, frameRate=80.0):
-    j = json.load(open(bazZmwJson))
-    hns = [ p["ZMW_NUMBER"] for p in j["METRICS"] ]
-    idx = hns.index(hn)
-    mfMetrics = j["METRICS"][idx]["MF_METRICS"]
-    df = pandas.DataFrame.from_records(mfMetrics)
-    halfSandwichRate = df.NUM_HALF_SANDWICHES / df.NUM_PULSES
-    pulseRate = df.NUM_PULSES / (df.NUM_FRAMES / frameRate)
-    labelStutterRate = df.NUM_PULSE_LABEL_STUTTERS / df.NUM_PULSES
-    labels = [-1] * len(df)
-    for i in xrange(len(df)):
-        if   (pulseRate[i] <= 0.5 or labelStutterRate[i] >= 0.6): labels[i] = A0
-        elif (halfSandwichRate[i]>= 0.06):                        labels[i] = A2
-        else:                                                     labels[i] = A1
-    # Turn into a column vector for sklearn convention
+def labelWindows(df, hn):
+    dfZ = df[df.ZmwNumber == hn]
+    labels = [-1] * len(dfZ)
+    for i in xrange(len(dfZ)):
+        if   (dfZ.PulseRate.iloc[i] <= 0.5 or dfZ.LabelStutterRate.iloc[i] >= 0.6):
+            labels[i] = A0
+        elif (dfZ.HalfSandwichRate.iloc[i] >= 0.06):
+            labels[i] = A2
+        else:
+            labels[i] = A1
     return np.reshape(labels, (-1, 1))
 
 def initHMM(length):
@@ -69,6 +71,7 @@ def findHQR(labelSequence):
     hmm = initHMM(len(labelSequence))
     ll, inferredStates = hmm.decode(labelSequence)
     # find the extent of HQ
+    print inferredStates
 
 #def main():
 
@@ -77,7 +80,14 @@ def findHQR(labelSequence):
 
 
 #labels = labelWindowsFromBazViewerJson("/home/UNIXHOME/dalexander/Projects/Bugs/Dromedary-HQRF/ZMW-11272631/11272631.json", 11272631)
-labels = labelWindowsFromBazViewerJson("/tmp/11272631.json", 11272631)
+#labels = labelWindowsFromBazViewerJson("/tmp/11272631.json", 11272631)
+df = loadBazViewerHDF5("/tmp/X1E3_metrics.h5")
+
+labels = labelWindows(df, 10944688)
+
+print labels.ravel()
 hmm = initHMM(len(labels))
-print hmm.decode(labels)
-# This is bogus---not allowed to transition into and out of HQRF!
+decoded = hmm.decode(labels)
+print decoded
+
+print decoded[1]
