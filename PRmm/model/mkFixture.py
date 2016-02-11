@@ -1,31 +1,19 @@
 from docopt import docopt
-import os.path as op
+import sys, os.path as op
 from glob import glob
 
 from pbcore.io import readFofn
-from pbcore.
+from pbcore.util.Process import backticks
 
-
-from ._utils import *
+from PRmm.model._utils import *
+from PRmm.model import Fixture
 
 __doc__ = \
 """
 Usage:
-  mkFixture [-n <sectionName>] (-s <secondaryPath> | -j <secondaryJobId>)
+  mkFixture [-n <sectionName>] (-s <secondaryJobPath> | -j <secondaryJobId>)
   mkFixture -m <milhousePath>
 """
-
-
-def fromPaths(reportsPath, secondaryJobPath=None):
-    basFname = findOneOrNone("*.bas.h5", reportsPath)
-    plsFname = findOneOrNone("*.pls.h5", reportsPath)
-    trcFname = findOneOrNone("*.trc.h5", updir(reportsPath))
-    if secondaryJobPath:
-        alnFname = findOneOrNone("*.cmp.h5", op.join(secondaryJobPath, "data"))
-    else:
-        alnFname = None
-    return ReadersFixture(trcFname=trcFname, plsFname=plsFname,
-                          basFname=basFname, alnFname=alnFname)
 
 def fromSmrtPortalPath(jobPath):
     # reckon the reports path from the input fofn ...
@@ -34,14 +22,20 @@ def fromSmrtPortalPath(jobPath):
         raise ValueError, "No support for multi-movie jobs yet"
     else:
         reportsPath = list(reportsPaths)[0]
-        return ReadersFixture.fromPaths(reportsPath, jobPath)
-
+        basFname = findOneOrNone("*.bas.h5", reportsPath) or findOneOrNone("*.bax.h5", reportsPath)
+        plsFname = findOneOrNone("*.pls.h5", reportsPath) or findOneOrNone("*.plx.h5", reportsPath)
+        trcFname = findOneOrNone("*.trc.h5", updir(reportsPath))
+        alnFname = findOneOrNone("*.cmp.h5", op.join(jobPath, "data"))
+        return Fixture(trcFname=trcFname, plsFname=plsFname,
+                       basFname=basFname, alnFname=alnFname)
 
 def fromSmrtLinkPath(jobPath):
     raise NotImplementedError
 
 def jobPathType(jobPath):
     # "SMRTPORTAL", "SMRTLINK", or "UNKNOWN"
+    if not op.isdir(jobPath):
+        raise ValueError, "Job path must be a reachable directory"
     if findOneOrNone("input.fofn", jobPath):
         return "SMRTPORTAL"
     elif findOneOrNone("workflow/entry-points.json", jobPath):
@@ -66,56 +60,16 @@ def fromSecondaryJobId(jobId):
 
 def main():
     args = docopt(__doc__)
-    fx = Fixture.fromIniFile(args["<iniFile>"], args["<sectionName>"])
-    print fx
+    if args["-m"]:
+        print "Milhouse support not yet implemented"
+        sys.exit(1)
+    if args["-s"]:
+        fx = fromSecondaryJobPath(args["<secondaryJobPath>"])
+    elif args["-j"]:
+        fx = fromSecondaryJobId(args["<secondaryJobId>"])
+    print fx.toIni(args["<sectionName>"] if args["-n"] else None)
+
+
 
 if __name__ == '__main__':
     main()
-
-
-
-# Make a tool for building fixtures conveniently,
-
-# mkFixture [--name sectionName] path1 [path2] >> file.ini
-#  (dwim from the two paths.  sectionName defaults to something)
-
-
-    # @staticmethod
-    # def fromSecondaryJobPath(jobPath):
-    #     # reckon the reports path from the input fofn ...
-    #     reportsPaths = set([ updir(path) for path in readFofn(op.join(jobPath, "input.fofn"))])
-    #     if len(reportsPaths) > 1:
-    #         raise ValueError, "No support for multi-movie jobs yet"
-    #     else:
-    #         reportsPath = list(reportsPaths)[0]
-    #         return ReadersFixture.fromPaths(reportsPath, jobPath)
-
-    # @staticmethod
-    # def fromPaths(reportsPath, secondaryJobPath=None):
-    #     basFname = findOneOrNone("*.bas.h5", reportsPath)
-    #     plsFname = findOneOrNone("*.pls.h5", reportsPath)
-    #     trcFname = findOneOrNone("*.trc.h5", updir(reportsPath))
-    #     if secondaryJobPath:
-    #         alnFname = findOneOrNone("*.cmp.h5", op.join(secondaryJobPath, "data"))
-    #     else:
-    #         alnFname = None
-    #     return ReadersFixture(trcFname=trcFname, plsFname=plsFname,
-    #                           basFname=basFname, alnFname=alnFname)
-
-    # @staticmethod
-    # def fromTraceSplitPaths(reportsPath, secondaryJobPath=None):
-    #     # ARGGH!
-    #     trcFnames = find("*split*.trc.h5", op.join(updir(reportsPath), "traceSplit"))
-    #     trcFofn = tempfile.NamedTemporaryFile(suffix=".trc.fofn", delete=False)
-    #     for fname in trcFnames:
-    #         trcFofn.file.write(fname)
-    #         trcFofn.file.write("\n")
-    #     trcFofn.close()
-    #     basFname = findOneOrNone("*.bas.h5", reportsPath)
-    #     plsFname = findOneOrNone("*.pls.h5", reportsPath)
-    #     if secondaryJobPath:
-    #         alnFname = findOneOrNone("*.cmp.h5", op.join(secondaryJobPath, "data"))
-    #     else:
-    #         alnFname = None
-    #     return ReadersFixture(trcFname=trcFofn.name, plsFname=plsFname,
-    #                           basFname=basFname, alnFname=alnFname)

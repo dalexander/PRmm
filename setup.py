@@ -19,7 +19,8 @@ setup(
         ],
     entry_points={
         'console_scripts': [
-            'prmm = PRmm.ui.main:main'
+            'prmm = PRmm.ui.main:main',
+            'mkFixture = PRmm.model.mkFixture:main'
         ]
     }
 )
