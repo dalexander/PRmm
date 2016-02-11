@@ -70,6 +70,18 @@ class Fixture(object):
                               refFname=resolvePath(opts.get("Reference")),
                               alnFname=resolvePath(opts.get("Alignments")))
 
+    def toIni(self, sectionName=None):
+        if sectionName is not None:
+            ini = "[%s]\n" % sectionName
+        else:
+            ini = ""
+        if self.trcF is not None: ini += "Traces=%s\n"     % self.trcF.filename
+        if self.basF is not None: ini += "Bases=%s\n"      % self.basF.filename
+        if self.plsF is not None: ini += "Pulses=%s\n"     % self.plsF.filename
+        if self.refF is not None: ini += "Reference=%s\n"  % self.refF.filename
+        if self.alnF is not None: ini += "Alignments=%s\n" % self.alnF.filename
+        return ini
+
     def __repr__(self):
         import pprint
         readerFieldNames = [ fn for fn in dir(self) if fn.endswith("F") ]
