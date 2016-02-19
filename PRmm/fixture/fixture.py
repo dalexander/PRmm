@@ -7,7 +7,7 @@ import tempfile, os, os.path as op
 
 from PRmm.model._utils import *
 from PRmm.model.utils import cached
-from PRmm.model.fixtureZmw import FixtureZmw
+from PRmm.fixture.fixtureZmw import FixtureZmw
 
 __all__ = [ "Fixture" ]
 

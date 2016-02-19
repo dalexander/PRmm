@@ -6,7 +6,7 @@ from pbcore.io import readFofn
 from pbcore.util.Process import backticks
 
 from PRmm.model._utils import *
-from PRmm.model import Fixture
+from PRmm.fixture import Fixture
 
 __doc__ = \
 """

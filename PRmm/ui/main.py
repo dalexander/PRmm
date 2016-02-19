@@ -11,7 +11,8 @@ from PRmm.ui.tracePlot import *
 from PRmm.ui.alignmentView import *
 from PRmm.ui.styles import *
 
-from PRmm.model import *
+from PRmm.fixture import *
+
 
 def debug_trace():
     # http://stackoverflow.com/questions/1736015/debugging-a-pyqt4-app
