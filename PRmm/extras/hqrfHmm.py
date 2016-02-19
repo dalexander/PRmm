@@ -73,21 +73,17 @@ def findHQR(labelSequence):
     # find the extent of HQ
     print inferredStates
 
-#def main():
 
-# if __name__ == "__main__":
-#     main()
+def main():
+    df = loadBazViewerHDF5("/tmp/X1E3_metrics.h5")
+    labels = labelWindows(df, 10944688)
+    print labels.ravel()
+    hmm = initHMM(len(labels))
+    decoded = hmm.decode(labels)
+    print decoded
+    print decoded[1]
 
 
-#labels = labelWindowsFromBazViewerJson("/home/UNIXHOME/dalexander/Projects/Bugs/Dromedary-HQRF/ZMW-11272631/11272631.json", 11272631)
-#labels = labelWindowsFromBazViewerJson("/tmp/11272631.json", 11272631)
-df = loadBazViewerHDF5("/tmp/X1E3_metrics.h5")
 
-labels = labelWindows(df, 10944688)
-
-print labels.ravel()
-hmm = initHMM(len(labels))
-decoded = hmm.decode(labels)
-print decoded
-
-print decoded[1]
+if __name__ == "__main__":
+    main()
