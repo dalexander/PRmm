@@ -77,6 +77,10 @@ class VirtualPolymeraseBamReader(object):
             raise Exception, "Requires single movie BAM file, and matching scraps"
 
     @property
+    def filename(self):
+        return self.subreadsF.filename
+
+    @property
     def hasPulses(self):
         raise NotImplementedError()
 
