@@ -34,7 +34,7 @@ class FixtureZmw(object):
     @property
     @cached
     def _bases(self):
-        if self.readers.hasPulses:
+        if self.readers.hasBases:
             return self.readers.basF[self.holeNumber].readNoQC()
         else:
             return None

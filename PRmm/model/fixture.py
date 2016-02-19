@@ -14,6 +14,13 @@ __all__ = [ "Fixture" ]
 
 class TraceUnavailable(Exception): pass
 
+# we can move this to pbcore.io once we move VP
+def _openBasecallsFile(fname):
+    if fname.endswith(".bam"):
+        return VirtualPolymeraseBamReader(fname)
+    else:
+        return BasH5Reader(fname)
+
 class Fixture(object):
     """
     A *fixture* provides a simple means to collect reader
@@ -29,11 +36,15 @@ class Fixture(object):
                  plsFname=None, basFname=None,
                  alnFname=None, refFname=None):
 
-        self.trcF = None if not trcFname else TrcH5Reader(trcFname)
-        self.basF = None if not basFname else BasH5Reader(basFname)
-        self.plsF = None if not plsFname else PlsH5Reader(plsFname, self.basF)
-        self.refF = None if not refFname else IndexedFastaReader(refFname)
-        self.alnF = None if not alnFname else openIndexedAlignmentFile(alnFname, refFname)
+        def perhaps(constructor, fname, *args):
+            return (None if not fname else constructor(fname, *args))
+
+        self.trcF = perhaps(TrcH5Reader, trcFname)
+        self.basF = perhaps(_openBasecallsFile, basFname)
+        self.plsF = perhaps(PlsH5Reader, plsFname, self.basF)
+        self.refF = perhaps(IndexedFastaReader, refFname)
+        self.alnF = perhaps(openIndexedAlignmentFile, alnFname, refFname)
+
         if self.alnF is not None:
             if len(self.alnF.movieNames) > 1:
                 raise ValueError, "No support for multi-movie jobs"

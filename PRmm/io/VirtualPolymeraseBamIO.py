@@ -82,11 +82,23 @@ class VirtualPolymeraseBamReader(object):
 
     @property
     @cached
-    def holeNumbers(self):
+    def sequencingZmws(self):
+        """
+        Hole numbers for which we have basecalls and an HQ region
+        """
         return sorted(set(self.subreadsF.holeNumber))
 
+    @property
+    @cached
+    def allSequencingZmws(self):
+        """
+        Hole numbers for which we have basecalls
+        """
+        return sorted(set.union(set(self.subreadsF.holeNumber),
+                                set(self.scrapsF.holeNumber)))
+
     def __getitem__(self, holeNumber):
-        if holeNumber not in self.holeNumbers:
+        if holeNumber not in self.allSequencingZmws:
             raise IndexError, "Requested hole number has no entry in this BAM file"
         subreads = self.subreadsF.readsByHoleNumber(holeNumber)
         scraps = self.scrapsF.readsByHoleNumber(holeNumber)
@@ -110,6 +122,13 @@ class VirtualPolymeraseBamReader(object):
     @cached
     def frameRate(self):
         return self.subreadsF.readGroupTable[0].FrameRate
+
+    @property
+    @cached
+    def movieName(self):
+        mns = list(self.subreadsF.movieNames)
+        assert len(mns) == 1
+        return mns[0]
 
 
 def _recordsFormReadPartition(records):
