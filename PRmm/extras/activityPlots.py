@@ -241,3 +241,79 @@ def plotMetrics(zmwFixture, epochFrames=4096):
     makeSubplot(6, metrics.MeanLabelQV,        "Mean LabelQV")
 
     plt.suptitle(zmwFixture.zmwName + "\n" + details, fontsize=16)
+
+
+
+
+def hdf5MetricsPlot(df, hn, fx=None, label=""):
+    #
+    # Plot metrics extracted from a bazviewer HDF5 file
+    #
+    fig, axs = plt.subplots(3, 1, sharey=True, figsize=(6,10))
+
+    dfZ = df[df.ZmwNumber==hn].copy()
+    dfZ["BASE_END"] = dfZ.NUM_BASES.cumsum()
+
+    def calculateRegions(fxZ):
+        hasAlignments = len(fxZ.alignments) > 0
+        hasHqRegion = len(fxZ.baseRegions.hqRegion) > 0
+
+        # Resolve a (begin,end) extent in bases to an extent in windows,
+        # using BASE_END
+        def resolveBaseExtent(baseExtent):
+            b, e = baseExtent
+            return (dfZ.BASE_END.searchsorted(b),
+                    dfZ.BASE_END.searchsorted(e))
+
+        if hasHqRegion:
+            hqExtent = resolveBaseExtent(fxZ.baseRegions.hqRegion.extent)
+        else:
+            hqExtent = None
+
+        if hasAlignments:
+            alnExtents = [ resolveBaseExtent(aln.extent)
+                           for aln in fxZ.baseRegions.alignments ]
+        else:
+            alnExtents = []
+
+        return (hqExtent, alnExtents)
+
+
+    def makeSubplot(row, metric, desc, regions=None):
+        plt.subplot(3, 1, row + 1)
+        plt.plot(dfZ.BlockNumber, metric, 'o', alpha=0.6)
+        ax = plt.gca()
+        ax.set_xlim(0, len(dfZ))
+        ymin, ymax = ax.get_ylim()
+
+        if regions:
+            hqExtent, alnExtents = regions
+            for alnExtent in alnExtents:
+                plt.hlines(ymax, alnExtent[0], alnExtent[1], linewidth=16, color="red")
+            if hqExtent:
+                plt.hlines(ymin, hqExtent[0],  hqExtent[1],  linewidth=16, color="black")
+
+        plt.ylabel(desc)
+
+    if fx:
+        fxZ = fx[hn]
+        regions = calculateRegions(fxZ)
+    else:
+        fxZ = None
+        regions = None
+
+    makeSubplot(0, dfZ.LabelStutterRate, "Pulse homopolymer content", regions)
+    makeSubplot(1, dfZ.PulseRate,        "Pulse rate",                regions)
+    makeSubplot(2, dfZ.HalfSandwichRate, "Half-sandwich rate",        regions)
+
+    if fxZ is None:
+        title = str(hn)
+    else:
+        title = fxZ.zmwName
+
+    if fxZ and fxZ.hasAlignments:
+        title += "\nAlns: "
+        title += ", ".join("%dbp @ %.1f%% " % (aln.readLength, 100*aln.identity)
+                           for aln in fxZ.alignments)
+
+    fig.suptitle(title, size=16)
