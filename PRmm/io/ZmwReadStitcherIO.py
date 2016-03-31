@@ -85,9 +85,9 @@ class ZmwReadStitcher(object):
         return self.subreadsF.filename
 
     @property
-    def hasPulses(self):
-        return (self.subreadsF.hasInternalPulseFeatures() and
-                self.scrapsF.hasInternalPulseFeatures())
+    def hasPulseFeatures(self):
+        return (self.subreadsF.hasPulseFeatures() and
+                self.scrapsF.hasPulseFeatures())
 
     @property
     @cached
