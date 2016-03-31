@@ -305,6 +305,9 @@ def hdf5MetricsPlot(df, hn, fx=None, label=""):
     makeSubplot(0, dfZ.LabelStutterRate, "Pulse homopolymer content", regions)
     makeSubplot(1, dfZ.PulseRate,        "Pulse rate",                regions)
     makeSubplot(2, dfZ.HalfSandwichRate, "Half-sandwich rate",        regions)
+    plt.plot(dfZ.BlockNumber, dfZ.SandwichRate)
+
+
 
     if fxZ is None:
         title = str(hn)

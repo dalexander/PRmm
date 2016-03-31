@@ -26,6 +26,7 @@ def loadBazViewerHDF5(h5Filename, frameRateHz=80.0):
     df = pd.DataFrame.from_dict(mapping)
     # Augment columns
     df["HalfSandwichRate"] = df.NUM_HALF_SANDWICHES.astype(np.float) /  df.NUM_PULSES
+    df["SandwichRate"] = df.NUM_SANDWICHES.astype(np.float) /  df.NUM_PULSES
     df["PulseRate"] = df.NUM_PULSES.astype(np.float) / (df.NUM_FRAMES / frameRateHz)
     df["LabelStutterRate"] = df.NUM_PULSE_LABEL_STUTTERS.astype(np.float) / df.NUM_PULSES
     return df
