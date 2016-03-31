@@ -82,7 +82,8 @@ class VirtualPolymeraseBamReader(object):
 
     @property
     def hasPulses(self):
-        raise NotImplementedError()
+        return (self.subreadsF.hasInternalPulseFeatures() and
+                self.scrapsF.hasInternalPulseFeatures())
 
     @property
     @cached
@@ -279,6 +280,10 @@ class VirtualPolymeraseZmw(BaseRegionsMixin):
                     for interval in intervalsByType[code] ]
 
         return toRecArray(REGION_TABLE_DTYPE, regions)
+
+    @property
+    def hqRegionSnr(self):
+        return self.bamRecords[0].hqRegionSnr
 
 
 

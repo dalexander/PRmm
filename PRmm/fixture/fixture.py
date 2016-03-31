@@ -41,9 +41,19 @@ class Fixture(object):
 
         self.trcF = perhaps(TrcH5Reader, trcFname)
         self.basF = perhaps(_openBasecallsFile, basFname)
-        self.plsF = perhaps(PlsH5Reader, plsFname, self.basF)
         self.refF = perhaps(IndexedFastaReader, refFname)
         self.alnF = perhaps(openIndexedAlignmentFile, alnFname, refFname)
+
+        # Pls requires a little bit of special handling
+        if plsFname is not None and plsFname.endswith(".bam"):
+            if plsFname == basFname:
+                self.plsF = self.basF
+            else:
+                self.plsF = VirtualPolymeraseBamReader(plsFname)
+            if not self.plsF.hasPulses:
+                raise ValueError, "Pulse BAM file lacks required features (need --internal mode basecaller run)"
+        else:
+            self.plsF = perhaps(PlsH5Reader, plsFname, self.basF)
 
         if self.alnF is not None:
             if len(self.alnF.movieNames) > 1:
