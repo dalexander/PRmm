@@ -50,7 +50,7 @@ class Fixture(object):
                 self.plsF = self.basF
             else:
                 self.plsF = ZmwReadStitcher(plsFname)
-            if not self.plsF.hasPulses:
+            if not self.plsF.hasPulseFeatures:
                 raise ValueError, "Pulse BAM file lacks required features (need --internal mode basecaller run)"
         else:
             self.plsF = perhaps(PlsH5Reader, plsFname, self.basF)

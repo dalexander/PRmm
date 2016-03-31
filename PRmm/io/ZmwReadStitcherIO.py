@@ -18,20 +18,25 @@ from collections import namedtuple, defaultdict
 
 
 # This duplicates stuff we have already in pbcore.  Unify?
-PulseFeatureDesc = \
-    namedtuple("PulseFeatureDesc",
+FeatureDesc = \
+    namedtuple("FeatureDesc",
                ("accessorName", "nameInManifest", "tagName", "decoder", "encodedDtype", "decodedDtype"))
 
 
-PULSE_FEATURE_DESCS = \
- [ PulseFeatureDesc("preBaseFrames"     , "Ipd:Frames"        , "ip", "identity", np.uint16, np.uint16),
-   PulseFeatureDesc("preBaseFrames"     , "Ipd:CodecV1"       , "ip", "codecV1",  np.uint8,  np.uint16),
-   PulseFeatureDesc("baseWidthInFrames" , "PulseWidth:Frames" , "pw", "identity", np.uint16, np.uint16),
-   PulseFeatureDesc("baseWidthInFrames" , "PulseWidth:CodecV1", "pw", "codecV1",  np.uint8,  np.uint16) ]
-
+FEATURE_DESCS = \
+[   # Base features
+    FeatureDesc("preBaseFrames"     , "Ipd:Frames"        , "ip", "identity", np.uint16, np.uint16),
+    FeatureDesc("preBaseFrames"     , "Ipd:CodecV1"       , "ip", "codecV1",  np.uint8,  np.uint16),
+    FeatureDesc("baseWidthFrames"   , "PulseWidth:Frames" , "pw", "identity", np.uint16, np.uint16),
+    FeatureDesc("baseWidthFrames"   , "PulseWidth:CodecV1", "pw", "codecV1",  np.uint8,  np.uint16),
+    # Pulse features
+    FeatureDesc("startFrame"        , "StartFrame"        , "sf", "identity", np.uint32, np.uint32),
+    FeatureDesc("pulseWidthFrames"  , "PulseCallWidth"    , "px", "identity", np.uint16, np.uint16),
+    FeatureDesc("prePulseFrames"    , "PrePulseFrames"    , "pd", "identity", np.uint16, np.uint16)
+ ]
 
 _possibleFeatureManifestNames = set([ pd.nameInManifest
-                                      for pd in PULSE_FEATURE_DESCS ])
+                                      for pd in FEATURE_DESCS ])
 
 def toRecArray(dtype, arr):
     return np.rec.array(arr, dtype=dtype).flatten()
@@ -116,7 +121,7 @@ class ZmwReadStitcher(object):
 
     @property
     @cached
-    def pulseFeatureDescs(self):
+    def featureDescs(self):
       rgs = self.subreadsF.peer.header["RG"]
       assert len(rgs) == 1
       rg = rgs[0]
@@ -124,7 +129,7 @@ class ZmwReadStitcher(object):
                       for pair in rg["DS"].split(";"))
       manifestNames = dsEntries.intersection(_possibleFeatureManifestNames)
       return { desc.accessorName : desc
-               for desc in PULSE_FEATURE_DESCS
+               for desc in FEATURE_DESCS
                if desc.nameInManifest in manifestNames }
 
     @property
@@ -171,6 +176,16 @@ def _preciseReadType(bamRecord):
     return readType + scrapDetail
 
 
+def _computePulseIndex(pc):
+    """
+    Returns an array the size of the *basecalls* (|uppercase letters in pc|);
+    each entry encodes the index in pc of that basecall.
+    """
+    # np.char.islower is too slow AFAICT...
+    isUpper = np.fromstring(pc, dtype=np.uint8) <= ord("Z")
+    return np.flatnonzero(isUpper)
+
+
 class StitchedZmw(BaseRegionsMixin):
 
     def __init__(self, reader, bamRecords):
@@ -196,19 +211,24 @@ class StitchedZmw(BaseRegionsMixin):
         The assembled base and pulse features, as a dict
         """
         _features = { "basecalls" : "".join(r.peer.seq for r in self.bamRecords) }
-        for featureName in self.reader.pulseFeatureDescs:
-            desc = self.reader.pulseFeatureDescs[featureName]
+        for featureName in self.reader.featureDescs:
+            desc = self.reader.featureDescs[featureName]
             decode = Decoders.byName(desc.decoder)
             cat = _concatenateRecordArrayTags(desc.tagName, desc.encodedDtype, self.bamRecords)
             decoded = decode(cat)
             _features[featureName] = decoded
+
+        # If we have pulse features, we need to add the pulsecalls and
+        # an artificial feature for the "pulse index"
+        if self.reader.hasPulseFeatures:
+            pc = "".join(r.peer.get_tag("pc") for r in self.bamRecords)
+            _features["pulsecalls"] = pc
+            _features["pulseIndex"] = _computePulseIndex(pc)
+
         return _features
 
     @property
     def hasPulseFeatures(self):
-        """
-        Returns True iff this record has the detailed "pulse" features
-        """
         return "pulsecalls" in self._features
 
     @property
@@ -226,6 +246,12 @@ class StitchedZmw(BaseRegionsMixin):
             qStart, qEnd = 0, self.zmwReadLength
         return StitchedZmwRead(self, qStart, qEnd)
 
+    def pulses(self):
+        return self.readNoQC()
+
+    @property
+    def pulseIndex(self):
+        return self._features["pulseIndex"]
 
     def read(self, qStart=None, qEnd=None):
         """
@@ -239,6 +265,7 @@ class StitchedZmw(BaseRegionsMixin):
             qStart = max(qStart, self.hqRegion[0])
             qEnd   = min(qEnd, self.hqRegion[1])
         return StitchedZmwRead(self, qStart, qEnd)
+
 
     @property
     @cached
@@ -299,18 +326,64 @@ class StitchedZmwRead(object):
         self.zmw = zmw
         self.qStart = qStart
         self.qEnd = qEnd
+        # Pulse start, end?  Reckon these from pulseIndex
+        if self.zmw.hasPulseFeatures:
+            self.pStart = self.zmw.pulseIndex[self.qStart]
+            if self.qEnd > self.qStart:
+                self.pEnd   = self.zmw.pulseIndex[self.qEnd-1] + 1
+            else:
+                self.pEnd = self.pStart
+
+    # Generic accessors
+
+    def baseFeature(self, name):
+        return self.zmw._features[name][self.qStart:self.qEnd]
+
+    def pulseFeature(self, name):
+        return self.zmw._features[name][self.pStart:self.pEnd]
+
+    # Specific base feature accessors
 
     def basecalls(self):
         return self.baseFeature("basecalls")
 
-    def pulsecalls(self):
-        return self.baseFeature("pulsecalls")
-
     def preBaseFrames(self):
         return self.baseFeature("preBaseFrames")
 
-    def baseFeature(self, name):
-        return self.zmw._features[name][self.qStart:self.qEnd]
+    # Specific pulse feature accessors
+
+    def pulsecalls(self):
+        return self.pulseFeature("pulsecalls")
+
+    def pulseIndex(self):
+        return self.pulseFeature("pulseIndex")
+
+    def PulseIndex(self):
+        return self.pulseIndex()
+
+    def pulseStartFrame(self):
+        return self.pulseFeature("startFrame")
+
+    def pulseWidthFrames(self):
+        return self.pulseFeature("pulseWidthFrames")
+
+    def channel(self):
+        # FIXME: get rid of this, make PRmm not have to know "channel"
+        # anywhere, it's not useful.  Work off of pulse label.
+        baseMap = "TGCA" # Sequel assumption...
+        channelMap = np.zeros(shape=256, dtype=int)
+        for c, b in enumerate(baseMap):
+            channelMap[ord(b)] = c
+        return channelMap[np.fromstring(self.pulsecalls(), dtype=np.uint8)]
+
+    def channelBases(self):
+        return self.pulsecalls()
+
+    def pulseEndFrame(self):
+        return self.pulseStartFrame() + self.pulseWidthFrames()
+
+
+    # Other stuff
 
     @property
     def readName(self):

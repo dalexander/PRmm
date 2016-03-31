@@ -70,7 +70,7 @@ class Test(object):
 from mock import Mock
 from pysam import AlignedSegment
 from pbcore.io import BamAlignment
-from PRmm.io.ZmwReadStitcherIO import StitchedZmw, PulseFeatureDesc
+from PRmm.io.ZmwReadStitcherIO import StitchedZmw, FeatureDesc
 
 pulsePeer = AlignedSegment()
 pulsePeer.is_unmapped=True
@@ -108,7 +108,7 @@ bamRecord = BamAlignment(mockBamReader, pulsePeer)
 
 mockVpReader = Mock(movieName="FakeMovie",
                     pulseFeatureDescs=
-                     { "preBaseFrames"     : PulseFeatureDesc("preBaseFrames"     , "Ipd:Frames"        , "ip", "identity", np.uint16, np.uint16),
-                       "baseWidthInFrames" : PulseFeatureDesc("baseWidthInFrames" , "PulseWidth:Frames" , "pw", "identity", np.uint16, np.uint16) })
+                     { "preBaseFrames"     : FeatureDesc("preBaseFrames"     , "Ipd:Frames"        , "ip", "identity", np.uint16, np.uint16),
+                       "baseWidthInFrames" : FeatureDesc("baseWidthInFrames" , "PulseWidth:Frames" , "pw", "identity", np.uint16, np.uint16) })
 
 vpZmw = StitchedZmw(mockVpReader, [bamRecord])

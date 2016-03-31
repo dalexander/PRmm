@@ -97,15 +97,15 @@ class FixtureZmw(object):
 
     @property
     def pulseStartFrame(self):
-        return self._pulses.startFrame()
+        return self._pulses.pulseStartFrame()
 
     @property
     def pulseEndFrame(self):
-        return self._pulses.endFrame()
+        return self._pulses.pulseEndFrame()
 
     @property
     def pulseWidth(self):
-        return self._pulses.widthInFrames()
+        return self._pulses.pulseWidthFrames()
 
     @property
     def prePulseFrames(self):

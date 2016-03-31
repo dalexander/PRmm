@@ -108,16 +108,14 @@ class ZmwPulses(object):
         CHANNEL_BASES = np.fromstring(self.baseMap, dtype=np.uint8)
         return CHANNEL_BASES[self.channel()].tostring()
 
-
-    def startFrame(self):
+    def pulseStartFrame(self):
         return arrayFromDataset(self._pulsecallsGroup["StartFrame"], *self.offsets)
 
-    def widthInFrames(self):
+    def pulseWidthFrames(self):
         return arrayFromDataset(self._pulsecallsGroup["WidthInFrames"], *self.offsets)
 
-    def endFrame(self):
-        return self.startFrame() + self.widthInFrames()
-
+    def pulseEndFrame(self):
+        return self.pulseStartFrame() + self.pulseWidthFrames()
 
     def prePulseFrames(self):
         # This is a bit tricky.  Basically we want startFrame - lag(endFrame)
