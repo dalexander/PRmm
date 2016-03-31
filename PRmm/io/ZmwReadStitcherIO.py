@@ -1,5 +1,5 @@
 
-__all__ = [ "VirtualPolymeraseBamReader" ]
+__all__ = [ "ZmwReadStitcher" ]
 
 # don't make this harder than it needs to be.  just supply the API needed by the model
 # Not tuned for efficiency at all
@@ -63,8 +63,12 @@ class Decoders(object):
       return lookup[name]
 
 
-class VirtualPolymeraseBamReader(object):
-
+class ZmwReadStitcher(object):
+    """
+    A reader class that enables viewing the read records corresponding
+    to a given ZMW, as present in a paired subreads.bam and
+    scraps.bam, as if they were a contiguous ZMW read record.
+    """
     def __init__(self, subreadsFname, scrapsFname=None):
         if not subreadsFname.endswith(".subreads.bam"):
             raise Exception, "Expecting a subreads.bam"
@@ -108,7 +112,7 @@ class VirtualPolymeraseBamReader(object):
         subreads = self.subreadsF.readsByHoleNumber(holeNumber)
         scraps = self.scrapsF.readsByHoleNumber(holeNumber)
         combined = sorted(subreads + scraps, key=lambda x: x.qStart)
-        return VirtualPolymeraseZmw(self, combined)
+        return StitchedZmw(self, combined)
 
     @property
     @cached
@@ -167,7 +171,7 @@ def _preciseReadType(bamRecord):
     return readType + scrapDetail
 
 
-class VirtualPolymeraseZmw(BaseRegionsMixin):
+class StitchedZmw(BaseRegionsMixin):
 
     def __init__(self, reader, bamRecords):
         if not _recordsFormReadPartition(bamRecords):
@@ -209,7 +213,7 @@ class VirtualPolymeraseZmw(BaseRegionsMixin):
 
     @property
     @cached
-    def polymeraseReadLength(self):
+    def zmwReadLength(self):
         return max(r.qEnd for r in self.bamRecords)
 
     def readNoQC(self, qStart=None, qEnd=None):
@@ -219,8 +223,8 @@ class VirtualPolymeraseZmw(BaseRegionsMixin):
         if qEnd is None and qStart is not None:
             raise ValueError, "Must specify both args, or neither"
         if qStart is None:
-            qStart, qEnd = 0, self.polymeraseReadLength
-        return VirtualPolymeraseZmwRead(self, qStart, qEnd)
+            qStart, qEnd = 0, self.zmwReadLength
+        return StitchedZmwRead(self, qStart, qEnd)
 
 
     def read(self, qStart=None, qEnd=None):
@@ -234,7 +238,7 @@ class VirtualPolymeraseZmw(BaseRegionsMixin):
         else:
             qStart = max(qStart, self.hqRegion[0])
             qEnd   = min(qEnd, self.hqRegion[1])
-        return VirtualPolymeraseZmwRead(self, qStart, qEnd)
+        return StitchedZmwRead(self, qStart, qEnd)
 
     @property
     @cached
@@ -244,20 +248,20 @@ class VirtualPolymeraseZmw(BaseRegionsMixin):
         *base*-coordinate-delimited regions, using the same recarray
         dtype that is returned by BasH5Reader.
 
-        *Note* that the regiontable from the VirtualPolymeraseZmw will
+        *Note* that the regiontable from the StitchedZmwRead will
         not in general be equivalent to that from a bas.h5, if the BAM
         files were produced using bax2bam, because in our BAM
         encodings, a subread or adapter cannot extend beyond the HQ
         region.  Additionally there is no concept of a "region score"
         for the BAM.
         """
-        polymeraseReadExtent = Interval(0, self.polymeraseReadLength)
+        zmwReadExtent = Interval(0, self.zmwReadLength)
         intervalsByType = defaultdict(list)
         for r in self.bamRecords:
             intervalsByType[_preciseReadType(r)].append(Interval(r.qStart, r.qEnd))
 
         # Find an HQ region
-        hqIntervalTree = IntervalTree([polymeraseReadExtent])
+        hqIntervalTree = IntervalTree([zmwReadExtent])
         for lqInterval in intervalsByType["SCRAP:L"]:
             hqIntervalTree.chop(*lqInterval)
         hqIntervals = list(hqIntervalTree)
@@ -287,7 +291,7 @@ class VirtualPolymeraseZmw(BaseRegionsMixin):
 
 
 
-class VirtualPolymeraseZmwRead(object):
+class StitchedZmwRead(object):
 
     # slots
 

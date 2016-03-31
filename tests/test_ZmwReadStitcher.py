@@ -1,4 +1,4 @@
-from PRmm.io import VirtualPolymeraseBamReader
+from PRmm.io import ZmwReadStitcher
 from pbcore.io import BasH5Reader
 from pbcore.data import getUnalignedBam, getBaxForBam
 from pbcore.io.align._BamSupport import downsampleFrames
@@ -12,10 +12,10 @@ from nose.tools import (nottest,
                         assert_equal as EQ,
                         assert_almost_equal as EQISH)
 
-class TestVirtualPolymeraseReader(object):
+class Test(object):
 
     def __init__(self):
-        self.V = VirtualPolymeraseBamReader(getUnalignedBam())
+        self.V = ZmwReadStitcher(getUnalignedBam())
         self.B = BasH5Reader(getBaxForBam())
         self.VZ = self.V[1650]
         self.BZ = self.B[1650]
@@ -70,7 +70,7 @@ class TestVirtualPolymeraseReader(object):
 from mock import Mock
 from pysam import AlignedSegment
 from pbcore.io import BamAlignment
-from PRmm.io.VirtualPolymeraseBamIO import VirtualPolymeraseZmw, PulseFeatureDesc
+from PRmm.io.ZmwReadStitcherIO import StitchedZmw, PulseFeatureDesc
 
 pulsePeer = AlignedSegment()
 pulsePeer.is_unmapped=True
@@ -111,4 +111,4 @@ mockVpReader = Mock(movieName="FakeMovie",
                      { "preBaseFrames"     : PulseFeatureDesc("preBaseFrames"     , "Ipd:Frames"        , "ip", "identity", np.uint16, np.uint16),
                        "baseWidthInFrames" : PulseFeatureDesc("baseWidthInFrames" , "PulseWidth:Frames" , "pw", "identity", np.uint16, np.uint16) })
 
-vpZmw = VirtualPolymeraseZmw(mockVpReader, [bamRecord])
+vpZmw = StitchedZmw(mockVpReader, [bamRecord])

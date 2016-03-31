@@ -17,7 +17,7 @@ class TraceUnavailable(Exception): pass
 # we can move this to pbcore.io once we move VP
 def _openBasecallsFile(fname):
     if fname.endswith(".bam"):
-        return VirtualPolymeraseBamReader(fname)
+        return ZmwReadStitcher(fname)
     else:
         return BasH5Reader(fname)
 
@@ -49,7 +49,7 @@ class Fixture(object):
             if plsFname == basFname:
                 self.plsF = self.basF
             else:
-                self.plsF = VirtualPolymeraseBamReader(plsFname)
+                self.plsF = ZmwReadStitcher(plsFname)
             if not self.plsF.hasPulses:
                 raise ValueError, "Pulse BAM file lacks required features (need --internal mode basecaller run)"
         else:
