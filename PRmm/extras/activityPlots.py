@@ -3,6 +3,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 import pandas as pd
 import math
+import textwrap
 
 from PRmm.model import Region
 
@@ -271,8 +272,8 @@ def hdf5MetricsPlot(df, hn, fx=None, label=""):
             hqExtent = None
 
         if hasAlignments:
-            alnExtents = [ resolveBaseExtent(aln.extent)
-                           for aln in fxZ.baseRegions.alignments ]
+            alnExtents = [ (resolveBaseExtent((aln.aStart, aln.aEnd)), aln.isForwardStrand)
+                           for aln in fxZ.alignments ]
         else:
             alnExtents = []
 
@@ -289,7 +290,8 @@ def hdf5MetricsPlot(df, hn, fx=None, label=""):
         if regions:
             hqExtent, alnExtents = regions
             for alnExtent in alnExtents:
-                plt.hlines(ymax, alnExtent[0], alnExtent[1], linewidth=16, color="red")
+                color = "green" if alnExtent[1] else "red"
+                plt.hlines(ymax, alnExtent[0][0], alnExtent[0][1], linewidth=16, color=color)
             if hqExtent:
                 plt.hlines(ymin, hqExtent[0],  hqExtent[1],  linewidth=16, color="black")
 
@@ -307,16 +309,16 @@ def hdf5MetricsPlot(df, hn, fx=None, label=""):
     makeSubplot(2, dfZ.HalfSandwichRate, "Half-sandwich rate",        regions)
     plt.plot(dfZ.BlockNumber, dfZ.SandwichRate)
 
-
-
     if fxZ is None:
-        title = str(hn)
+        zmwName = str(hn)
     else:
-        title = fxZ.zmwName
+        zmwName = fxZ.zmwName
 
     if fxZ and fxZ.hasAlignments:
-        title += "\nAlns: "
-        title += ", ".join("%dbp @ %.1f%% " % (aln.readLength, 100*aln.identity)
-                           for aln in fxZ.alignments)
+        limit = 6
+        rawTitle = "Alns: " + ", ".join("%dbp@%.1f%%" % (aln.readLength, 100*aln.identity) for aln in fxZ.alignments[:6])
+        if len(fxZ.alignments) > limit:
+            rawTitle += "..."
+        title = textwrap.fill(rawTitle, 60)
 
-    fig.suptitle(title, size=16)
+    fig.suptitle(zmwName + "\n" + title, size=16)
