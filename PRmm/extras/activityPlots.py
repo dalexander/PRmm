@@ -56,6 +56,40 @@ def isHalfSandwich(prePulseFrames, channelBase):
     return isHalfSandwichArr
 
 
+def isNearSandwich(prePulseFrames, channelBase):
+    # vectorized computation of indicator variable for sandwich event.
+    # the middle pulse is designated the sandwich event, here.
+    isSandwichArr = np.zeros(shape=len(channelBase), dtype=bool)
+    for j in xrange(len(channelBase)):
+        if j == 0 or j == (len(channelBase) - 1):
+            isSandwichArr[j] = False
+        else:
+            adjacentWithPrev = prePulseFrames[j]   <= 1
+            adjacentWithNext = prePulseFrames[j+1] <= 1
+            prevColor = color[channelBase[j-1]]
+            thisColor = color[channelBase[j]]
+            nextColor = color[channelBase[j+1]]
+
+            isSandwichArr[j] = ((adjacentWithPrev and adjacentWithNext) and
+                                (prevColor == nextColor) and (thisColor != prevColor))
+    return isSandwichArr
+
+def isNearHalfSandwich(prePulseFrames, channelBase):
+    # vectorized computation of indicator variable for sandwich event.
+    # the latter pulse is designated the sandwich event, here.
+    isHalfSandwichArr = np.zeros(shape=len(channelBase), dtype=bool)
+    for j in xrange(len(channelBase)):
+        if j == 0:
+            isHalfSandwichArr[j] = False
+        else:
+            adjacentWithPrev = prePulseFrames[j] <= 1
+            prevColor = color[channelBase[j-1]]
+            thisColor = color[channelBase[j]]
+
+            isHalfSandwichArr[j] = adjacentWithPrev and (thisColor != prevColor)
+    return isHalfSandwichArr
+
+
 def alignmentFrameExtent(zmwFixture):
     assert len(zmwFixture.alignments) == 1
     rr = zmwFixture.regions
