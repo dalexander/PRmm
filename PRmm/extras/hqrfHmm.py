@@ -18,10 +18,6 @@ POST_QUIET  = 2
 POST_ACTIVE = 3
 nStates     = 4
 
-
-# def safeDivide(num, den):
-#     return np.ifelse(
-
 def loadBazViewerHDF5(h5Filename, frameRateHz=80.0):
     h5 = h5py.File(h5Filename, "r")
     mf = h5["MFMetrics"]
@@ -91,11 +87,10 @@ class DromedaryHQRegionFinder(object):
             pos = np.flatnonzero(decoded == 1)
             return (min(pos), max(pos) + 1)
 
-    def findHQRegion(self, df, hn):
+    def findHQRegion(self, dfZ):
         """
         Main entry point: (document this!)
         """
-        dfZ = df[df.ZmwNumber == hn]
         basesSeen = [0] + list(np.cumsum(dfZ.NUM_BASES))
         wS, wE = self.findHQWindowSpan(dfZ)
         return (basesSeen[wS], basesSeen[wE])
