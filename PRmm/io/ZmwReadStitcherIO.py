@@ -367,6 +367,9 @@ class StitchedZmwRead(object):
     def pulseWidthFrames(self):
         return self.pulseFeature("pulseWidthFrames")
 
+    def prePulseFrames(self):
+        return self.pulseFeature("prePulseFrames")
+
     def channel(self):
         # FIXME: get rid of this, make PRmm not have to know "channel"
         # anywhere, it's not useful.  Work off of pulse label.
