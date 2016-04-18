@@ -114,7 +114,8 @@ class EnhancedHQRegionFinder(DromedaryHQRegionFinder):
                   dfZ.LabelStutterRate.iloc[i] >= 0.6 or
                   dfZ.MeanPulseWidth.iloc[i]   <= 4.0):
                 labels[i] = A0
-            elif (dfZ.HalfSandwichRate.iloc[i] >= 0.06):
+            elif ((dfZ.HalfSandwichRate.iloc[i] >= 0.06) or
+                  (dfZ.SandwichRate.iloc[i] > 0)):
                 labels[i] = A2
             else:
                 labels[i] = A1
