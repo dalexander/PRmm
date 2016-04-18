@@ -354,5 +354,7 @@ def hdf5MetricsPlot(df, hn, fx=None, label=""):
         if len(fxZ.alignments) > limit:
             rawTitle += "..."
         title = textwrap.fill(rawTitle, 60)
+    else:
+        title = ""
 
     fig.suptitle(zmwName + "\n" + title, size=16)
