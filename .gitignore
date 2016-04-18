@@ -3,3 +3,4 @@ dist
 PRmm.egg-info
 *.pyc
 *~
+notebooks
