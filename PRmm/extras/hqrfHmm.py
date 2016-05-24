@@ -155,6 +155,25 @@ class EnhancedHQRegionFinder(DromedaryHQRegionFinder):
         else:
             return basicHQR
 
+
+class EnhancedHQRegionFinder2(EnhancedHQRegionFinder):
+    """
+    Same as EnhancedHQRegionFinder, but without the rule of 1 full sandwich => A2
+    """
+    def labelWindows(self, dfZ):
+        labels = [-1] * len(dfZ)
+        for i in xrange(len(dfZ)):
+            if   (dfZ.PulseRate.iloc[i]        <= 0.5 or
+                  dfZ.LabelStutterRate.iloc[i] >= 0.6 or
+                  dfZ.MeanPulseWidth.iloc[i]   <= 4.0):
+                labels[i] = A0
+            elif ((dfZ.HalfSandwichRate.iloc[i] >= 0.06)):
+                labels[i] = A2
+            else:
+                labels[i] = A1
+        return np.reshape(labels, (-1, 1))
+
+
 if __name__ == "__main__":
     df = loadBazViewerHDF5("/Users/dalexander/Data/m54012_160228_211932.metrics.h5")
     hn0 = 10944718
