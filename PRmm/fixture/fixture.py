@@ -155,8 +155,9 @@ class Fixture(object):
     @property
     @cached
     def holeNumbers(self):
-        return sorted(set.intersection(set(self.trcF.holeNumbers),
-                                       set(self.basF.allSequencingZmws)))
+        hns = sorted(set.intersection(set(self.trcF.holeNumbers),
+                                      set(self.basF.allSequencingZmws)))
+        return np.array(hns)
 
     @property
     def holeNumbersWithAlignments(self):
