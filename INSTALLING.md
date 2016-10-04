@@ -1,3 +1,21 @@
+## How to install PRmm on Mac OS X
+
+The challenging part is installing Qt and PyQt4, and getting a
+virtualenv to know about them.  Here is a recipe, unforunately it
+exposes *every* Python package installed via homebrew to your
+virtualenv.
+
+```
+  $ brew install pyqt
+
+  $ virtualenv ~/VE-PRmm
+  $ echo /usr/local/lib/python2.7/site-packages > ~/VE-PRmm/lib/python2.7/site-packages/PyQt4.pth
+
+  $ source ~/VE-PRmm/bin/activate
+  $ pip install pyqtgraph
+  $ pip install -r requirements-headless.txt
+  $ python setup.py install
+```
 
 ## How to install PRmm (headless) on the PacBio cluster environment.
 
@@ -22,7 +40,7 @@ Now, set up our Python environment
   $ module load python/2.7.9                     # Load python
   $ module load virtualenv                       # ... and virtualenv
   $ virtualenv ~/VE-PRmm                         # Build the virtualenv
-  $ source VE/bin/activate                       # ... and activate it.
+  $ source ~/VE-PRmm/bin/activate                # ... and activate it.
 ```
 
 Get the PRmm source and install
