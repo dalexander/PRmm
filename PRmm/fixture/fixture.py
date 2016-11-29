@@ -58,8 +58,8 @@ class Fixture(object):
         if self.alnF is not None:
             if len(self.alnF.movieNames) > 1:
                 raise ValueError, "No support for multi-movie jobs"
-        if self.trcF is None:
-            raise ValueError, "trc.h5 required, for now"
+        if self.basF is None:
+            raise ValueError, "basecalls file required!"
 
     @staticmethod
     def fromIniFile(iniFilename, sectionName):
@@ -86,10 +86,10 @@ class Fixture(object):
         cp.read(iniFilename)
         opts = dict(cp.items(sectionName))
         return Fixture(trcFname=resolvePath(opts.get("Traces")),
-                              plsFname=resolvePath(opts.get("Pulses")),
-                              basFname=resolvePath(opts.get("Bases")),
-                              refFname=resolvePath(opts.get("Reference")),
-                              alnFname=resolvePath(opts.get("Alignments")))
+                       plsFname=resolvePath(opts.get("Pulses")),
+                       basFname=resolvePath(opts.get("Bases")),
+                       refFname=resolvePath(opts.get("Reference")),
+                       alnFname=resolvePath(opts.get("Alignments")))
 
     def toIni(self, sectionName=None):
         if sectionName is not None:
@@ -115,6 +115,7 @@ class Fixture(object):
 
     @property
     def platform(self):
+        assert self.trcF is not None, "TODO: implement platform detection, absent trace file"
         if self.trcF.numChannels == 2:
             return "Sequel"
         elif self.trcF.numChannels == 4:
@@ -124,11 +125,11 @@ class Fixture(object):
 
     @property
     def movieName(self):
-        return self.trcF.movieName
+        return self.basF.movieName
 
     @property
     def frameRate(self):
-        return self.trcF.frameRate
+        return self.basF.frameRate
 
     @property
     def hasTraces(self):
@@ -155,6 +156,10 @@ class Fixture(object):
     @property
     @cached
     def holeNumbers(self):
+        return sorted(self.basF.allSequencingZmws)
+
+    @property
+    def holeNumbersWithTraces(self):
         hns = sorted(set.intersection(set(self.trcF.holeNumbers),
                                       set(self.basF.allSequencingZmws)))
         return np.array(hns)
@@ -162,7 +167,8 @@ class Fixture(object):
     @property
     def holeNumbersWithAlignments(self):
         if self.hasAlignments:
-            return sorted(set.intersection(set(self.holeNumbers), set(self.alnF.holeNumber)))
+            return sorted(set.intersection(set(self.holeNumbers),
+                                           set(self.alnF.holeNumber)))
         else:
             return []
 
