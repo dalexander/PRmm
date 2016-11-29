@@ -176,7 +176,7 @@ class TraceViewer(QtGui.QMainWindow):
 __doc__ = \
 """
 Usage:
-    main.py [--debug] [--headless] --fixture=INIFILE::SECTION --hole=HOLENUMBER
+    main.py [--debug] [--profile] [--headless] --fixture=INIFILE::SECTION --hole=HOLENUMBER
 """
 
 def main():
@@ -205,4 +205,10 @@ def main():
         traceViewer.setFocus(holeNumber)
         if args["--debug"]:
             debug_trace()
-        app.exec_()
+        if args["--profile"]:
+            import cProfile
+            cProfile.runctx("app.exec_()",
+                            globals=globals(),
+                            locals=locals())
+        else:
+            app.exec_()
