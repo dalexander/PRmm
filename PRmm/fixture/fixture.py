@@ -156,7 +156,7 @@ class Fixture(object):
     @property
     @cached
     def holeNumbers(self):
-        return sorted(self.basF.allSequencingZmws)
+        return np.array(sorted(self.basF.allSequencingZmws))
 
     @property
     def holeNumbersWithTraces(self):
