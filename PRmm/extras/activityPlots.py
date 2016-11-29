@@ -284,10 +284,12 @@ def hdf5MetricsPlot(df, hn, fx=None, label=""):
     #
     # Plot metrics extracted from a bazviewer HDF5 file
     #
-    fig, axs = plt.subplots(3, 1, sharey=True, figsize=(6,10))
+    fig, axs = plt.subplots(3, 1, sharey=True, figsize=(12,10))
 
     dfZ = df[df.ZmwNumber==hn].copy()
     dfZ["BASE_END"] = dfZ.NUM_BASES.cumsum()
+
+    assert len(dfZ) > 0
 
     def calculateRegions(fxZ):
         hasAlignments = len(fxZ.alignments) > 0
@@ -314,8 +316,8 @@ def hdf5MetricsPlot(df, hn, fx=None, label=""):
         return (hqExtent, alnExtents)
 
 
-    def makeSubplot(row, metric, desc, regions=None):
-        plt.subplot(3, 1, row + 1)
+    def makeSubplot(pane, metric, desc, regions=None):
+        plt.subplot(3, 2, pane)
         plt.plot(dfZ.BlockNumber, metric, 'o', alpha=0.6)
         ax = plt.gca()
         ax.set_xlim(0, len(dfZ))
@@ -338,9 +340,13 @@ def hdf5MetricsPlot(df, hn, fx=None, label=""):
         fxZ = None
         regions = None
 
-    makeSubplot(0, dfZ.LabelStutterRate, "Pulse homopolymer content", regions)
-    makeSubplot(1, dfZ.PulseRate,        "Pulse rate",                regions)
-    makeSubplot(2, dfZ.HalfSandwichRate, "Half-sandwich rate",        regions)
+    makeSubplot(1, dfZ.LabelStutterRate, "Pulse homopolymer content", regions)
+    makeSubplot(3, dfZ.PulseRate,        "Pulse rate",                regions)
+    makeSubplot(5, dfZ.HalfSandwichRate, "Half-sandwich rate",        regions)
+    # Add more!
+    makeSubplot(2, dfZ.MeanPulseWidth,   "Mean pulse width",          regions)
+
+
     plt.plot(dfZ.BlockNumber, dfZ.SandwichRate)
 
     if fxZ is None:
