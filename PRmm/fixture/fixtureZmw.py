@@ -89,7 +89,7 @@ class FixtureZmw(object):
 
     @property
     def numPulses(self):
-        return len(self._pulses)
+        return self._pulses.numPulses()
 
     @property
     def pulseChannel(self):
