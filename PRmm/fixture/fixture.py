@@ -12,7 +12,7 @@ from PRmm.fixture.fixtureZmw import FixtureZmw
 __all__ = [ "Fixture" ]
 
 
-class TraceUnavailable(Exception): pass
+class ZmwUnavailable(Exception): pass
 
 # we can move this to pbcore.io once we move VP
 def _openBasecallsFile(fname):
@@ -174,7 +174,7 @@ class Fixture(object):
 
     def __getitem__(self, holeNumber):
         if holeNumber not in self.holeNumbers:
-            raise TraceUnavailable, "No trace for desired HN"
+            raise ZmwUnavailable, "No data for desired holenumber"
         else:
             return FixtureZmw(self, holeNumber)
 

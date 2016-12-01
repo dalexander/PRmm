@@ -65,6 +65,10 @@ class FixtureZmw(object):
     # -- Trace info --
 
     @property
+    def hasTraces(self):
+        return self.readers.hasTraces
+
+    @property
     def cameraTrace(self):
         return self.readers.trcF[self.holeNumber]
 
