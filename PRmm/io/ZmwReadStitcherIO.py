@@ -353,7 +353,7 @@ class StitchedZmwRead(object):
     # Specific pulse feature accessors
 
     def pulsecalls(self):
-        return self.pulseFeature("pulsecalls")
+        return self.pulseFeature("pulsecalls").upper()
 
     def pulseIndex(self):
         return self.pulseFeature("pulseIndex")
