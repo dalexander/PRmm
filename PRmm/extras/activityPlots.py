@@ -91,10 +91,20 @@ def isNearHalfSandwich(prePulseFrames, channelBase):
 
 
 def alignmentFrameExtent(zmwFixture):
+    """
+    Frame extent covered by the single alignment
+    """
     assert len(zmwFixture.alignments) == 1
-    rr = zmwFixture.regions
-    aln = [r for r in rr if r.regionType == Region.ALIGNMENT_REGION][0]
-    return (aln.startFrame, aln.endFrame)
+    aln = zmwFixture.traceRegions.alignment
+    return (aln.start, aln.end)
+
+def alignmentsFrameExtent(zmwFixture):
+    """
+    Frame extent covered by all alignments
+    """
+    assert len(zmwFixture.alignments) >= 1
+    alns = zmwFixture.traceRegions.alignments
+    return (alns[0].start, alns[-1].end)
 
 
 def computeMetrics(zmwFixture, epochFrames=4096):
@@ -115,7 +125,15 @@ def computeMetrics(zmwFixture, epochFrames=4096):
     frameRate = zmwFixture.frameRate
     W_sec = float(epochFrames)/frameRate
     W_frames = epochFrames
-    n_W = int(zmwFixture.numFrames / W_frames)
+
+
+    if zmwFixture.hasTraces:
+        n_W = int(zmwFixture.numFrames / W_frames)
+    else:
+        # There's actually no way to know this, at present---the movie
+        # length doesn't make it into any of the analysis files, it
+        # turns out.
+        n_W = zmwFixture.pulseEndFrame[-1]/W_frames
 
     # minimum num pulses to emit averages of pulse metrics
     MIN_PULSES = 10
@@ -132,8 +150,7 @@ def computeMetrics(zmwFixture, epochFrames=4096):
         pulses         = zmwFixture.pulseLabel     [pulseSlice]
         pulseWidth     = zmwFixture.pulseWidth     [pulseSlice]
         prePulseFrames = zmwFixture.prePulseFrames [pulseSlice]
-        pulseLabelQV   = zmwFixture.pulseLabelQV   [pulseSlice]
-        pulsePkmean    = zmwFixture.pulsePkmean    [pulseSlice]
+        #pulsePkmean    = zmwFixture.pulsePkmean    [pulseSlice]
         pulseChannel   = zmwFixture.pulseChannel   [pulseSlice]
 
         # median pulseWidth
@@ -142,23 +159,11 @@ def computeMetrics(zmwFixture, epochFrames=4096):
         else:
             meanPulseWidth.append(np.nan)
 
-        # mean label QV
-        if len(pulses) > MIN_PULSES:
-            meanLabelQV.append(np.mean(pulseLabelQV))
-        else:
-            meanLabelQV.append(np.nan)
 
         # mean signal, reckoned as the average of pulse MeanSignal
         # divided by the channel BaselineSigma
 
         # TODO: restore this.  Hopeless ATM because we aren't storing baseline sigma
-        # in the BAM file yet.
-        # if len(pulses) > MIN_PULSES:
-        #     idx = np.arange(len(pulses))
-        #     signals = pulses.meanSignal()[idx, pulses.channel()] / plsZmw.baselineSigma()[pulses.channel()]
-        #     meanSignal.append(np.mean(signals))
-        # else:
-        #     meanSignal.append(np.nan)
         meanSignal.append(0.0)
 
         # homopolymer content, in the *pulse* calls
@@ -171,37 +176,26 @@ def computeMetrics(zmwFixture, epochFrames=4096):
             hpc = np.nan
         homopolymerContent.append(hpc)
 
-        # Update: using simple Laplace rule regularization to shrink to the random
-        # expected 0.25---this is because we see it dropping to zero in windows where
-        # pulseRate was ~zero.  Want to represent "ignorance" better by shrinkage to 0.25;
-        # this will keep distribution unimodal under P0 condition.
-#         homopolymerContent.append((sum(curChannel == prevChannel) + 5) /
-#                                   float(len(curChannel)          + 20))
-
-        # Rate or count of sandwiches?
-        # Count gets rid of the ugly hyperbolic appearance of the plot
-        #sandwichRate.append(sum(isSandwich))
+        # Sandwich rates
         if len(pulses) > MIN_PULSES:
-            sandwichRate.append(np.mean(isSandwich(prePulseFrames, pulses)))
-            halfSandwichRate.append(np.mean(isHalfSandwich(prePulseFrames, pulses)))
+            sandwichRate.append(np.mean(isNearSandwich(prePulseFrames, pulses)))
+            halfSandwichRate.append(np.mean(isNearHalfSandwich(prePulseFrames, pulses)))
         else:
             sandwichRate.append(np.nan)
             halfSandwichRate.append(np.nan)
 
-        #a = zmwFixture.alignments[0]
-        #b = zmwFixture.baseLabel[a.rStart:a.rEnd]
-        #alnExtent = np.array(alignmentFrameExtent(zmwFixture))/ W_frames
+        alnExtent = np.array(alignmentsFrameExtent(zmwFixture))/ W_frames
 
-        state = np.zeros_like(homopolymerContent)
-        # state = []
-        # for i in xrange(n_W):
-        #     alnStart, alnEnd = alnExtent
-        #     afterAlnStart = i   >= alnStart
-        #     beforeAlnEnd  = i+1 <= alnEnd
-        #     if   afterAlnStart and beforeAlnEnd: s = IN_ALIGNMENT
-        #     elif not afterAlnStart:              s = PRE_ALIGNMENT
-        #     else:                                s = POST_ALIGNMENT
-        #     state.append(s)
+        #state = np.zeros_like(homopolymerContent)
+        state = []
+        for i in xrange(n_W):
+            alnStart, alnEnd = alnExtent
+            afterAlnStart    = i   >= alnStart
+            beforeAlnEnd     = i+1 <= alnEnd
+            if   afterAlnStart and beforeAlnEnd: s = IN_ALIGNMENT
+            elif not afterAlnStart:              s = PRE_ALIGNMENT
+            else:                                s = POST_ALIGNMENT
+            state.append(s)
 
 
     return pd.DataFrame({ "HoleNumber"             : holeNumber,
@@ -212,7 +206,7 @@ def computeMetrics(zmwFixture, epochFrames=4096):
                           "HalfSandwichRate"       : halfSandwichRate,
                           "MeanPulseWidth"         : meanPulseWidth,
 #                          "MeanBasecallQV"         : meanBasecallerQV,
-                          "MeanLabelQV"            : meanLabelQV,
+                          #"MeanLabelQV"            : meanLabelQV,
                           "MeanSignal"             : meanSignal,
                           "HomopolymerContent"     : homopolymerContent,
                           "State"                  : state})
