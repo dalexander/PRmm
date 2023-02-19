@@ -10,8 +10,9 @@ resulting from the ZMW.
 
 # Using the viewer
 
-    % prmm --help
-    
+   ```
+   % prmm --help
+   ``` 
 
 # Using the model for data analysis
 
@@ -23,6 +24,7 @@ The basic use concept for the model is:
      (`bam` or `cmp.h5`).  For convenience, a fixture can be specified
      in an `ini` file like so:
 
+        ``` 
         [All4Mers-LVP1]
         Comment=All4Mers 1 hour lambda on LVP1 chip
         Traces=/pbi/collections/315/3150005/r54004_20151117_203936/1_A01/m54004_151117_203942.trc.h5
@@ -31,17 +33,20 @@ The basic use concept for the model is:
         Pulses=%(Analysis)s/m54004_151117_203942.plx.h5
         Alignment=%(Analysis)s/aligned_reads.cmp.h5
         Reference=%(Analysis)s/All4Mers.fasta
-
+        ```
+        
      (note the use of format interpolation here, which is inessential (and nonstandard!)
      but convenient) and then loaded like so:
 
+        ```
         >>> readers = Fixture.fromIniFile("~/.pacbio/data-fixtures.ini", "All4Mers-LVP1")
-
+        ```
 
   2. "Slice" the ReadersFixture by a holenumber of interest, obtaining
      a "FixtureZmw", which then gives convenient access to the trace
      and analysis data from that ZMW.
-
+        
+        ```
         >>> zmw = readers[55]
 
         >>> zmw.cameraTrace
@@ -60,3 +65,4 @@ The basic use concept for the model is:
           <Region:    ADAPTER   73543   78439>,
           <Region:     INSERT   78485  134882>,
           <Region:  ALIGNMENT   86953  134882>]
+        ```
